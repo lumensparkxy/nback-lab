@@ -19,8 +19,10 @@ are part of the approved product.
 
 ## Current implementation
 
-Only the app shell and development harness are implemented. Feature agreement is
-separate from implementation status; use GitHub issues for delivery tracking.
+The development harness and fixed visual 2-back session are implemented, including
+instructions, timed play, interruption/restart and transient results. Configurable
+practice and saved history are not implemented. GitHub issues track review and
+delivery status.
 
 ## Not in the initial scope
 
@@ -37,7 +39,6 @@ counts. Rotation preserves elapsed timing, interruptions cancel active sessions,
 and process loss discards transient state. Gameplay is visual with fixed timing;
 the spec defines contrast, text-size and accessible-control requirements.
 
-This agreement does not mean gameplay has been implemented. Configurable
-difficulty/practice and persistent history remain draft specifications in
+Configurable difficulty/practice and persistent history remain draft specifications in
 [F002](features/F002-practice-and-difficulty.md) and
 [F003](features/F003-results-and-history.md).

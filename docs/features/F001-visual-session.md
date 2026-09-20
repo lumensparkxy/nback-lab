@@ -193,7 +193,7 @@ behavior or passing tests. Time and randomness are controllable test inputs.
 
 [F000](F000-harness.md) and accepted
 [architecture](../decisions/ADR-002-android-foundation.md). Delivery readiness and
-the remaining harness dependency for issue #3 are tracked in GitHub.
+the issue #3 delivery status are tracked in GitHub.
 
 ## Agreement record
 

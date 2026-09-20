@@ -1,43 +1,60 @@
 package com.example.nback
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.WindowManager
+import androidx.activity.OnBackPressedCallback
+import com.example.nback.engine.SessionScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModelProvider
 
 class MainActivity : ComponentActivity() {
+    internal val session: SessionViewModel by lazy { ViewModelProvider(this)[SessionViewModel::class.java] }
+    private val lifecycleHandler = Handler(Looper.getMainLooper())
+    private var pendingPause: Runnable? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent {
-            MaterialTheme {
-                WelcomeScreen()
+        // Consult current session state even before the next Compose frame.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (session.state.screen != SessionScreen.HOME) {
+                    session.back()
+                } else {
+                    isEnabled = false
+                    try { onBackPressedDispatcher.onBackPressed() } finally { isEnabled = true }
+                }
             }
-        }
+        })
+        setContent { NBackApp(session) }
     }
-}
 
-@Composable
-private fun WelcomeScreen() {
-    Scaffold { insets ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(insets).padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineLarge)
-            Text(stringResource(R.string.welcome_description), style = MaterialTheme.typography.bodyLarge)
-            Text(stringResource(R.string.welcome_status), style = MaterialTheme.typography.bodyMedium)
+    override fun onResume() {
+        super.onResume()
+        pendingPause?.let { lifecycleHandler.removeCallbacks(it); it.run() }
+        pendingPause = null
+        session.resume()
+    }
+
+    override fun onPause() {
+        session.pauseTicker()
+        // Decide after the synchronous lifecycle transition, so configuration
+        // relaunch and genuine loss of resumed state can be distinguished.
+        val decision = Runnable {
+            if (!isChangingConfigurations) session.interrupt()
+            pendingPause = null
         }
+        pendingPause = decision
+        lifecycleHandler.post(decision)
+        super.onPause()
+    }
+
+    internal fun keepScreenAwake(playing: Boolean) {
+        if (playing) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 }
