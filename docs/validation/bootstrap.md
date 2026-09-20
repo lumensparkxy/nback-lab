@@ -16,8 +16,8 @@ correctness or release readiness is claimed.
 | Emulator launch/recreation | Passed: both `LaunchSmokeTest` tests on Pixel9a ARM64, API 36 |
 | Independent review | Initial stale-evidence finding fixed and re-reviewed; final executable-change review reported no findings |
 | Visual inspection | Settled launch screen inspected; text visible without clipping, crash buffer empty |
-| Hosted CI | Pending first publication; see repository Actions |
-| GitHub rules | Pending initial branch publication and CI |
+| Hosted CI | Initial run correctly failed when `sdkmanager` was absent from PATH; correction adds explicit SDK setup, with results tracked in issue #1 |
+| GitHub rules | Configured and read back: PRs, strict Actions `gate` check (app 15368), administrator enforcement, resolved conversations, no force push/deletion, automatic merge disabled |
 | Codex project configuration | Loaded by Codex CLI 0.145.0 configuration reader with strict config; project layer active and two-subagent limit effective |
 | Custom-role execution | Not verified: automatic approval review blocked fresh model-session execution; separate owner authorization requested |
 
@@ -36,3 +36,8 @@ correctness or release readiness is claimed.
   duplication was found; the cause of the extra generated files was not established.
 - The actual first feature/PR cycle remains issue #3 after session rules are agreed.
   Runtime role loading, hosted CI and branch protection are distinct checks.
+
+Initial published revision: `8476a5e26643167b051407c5436dcfa2911acc90`.
+The first [hosted run](https://github.com/lumensparkxy/nback-lab/actions/runs/35533173730)
+demonstrated failure propagation from SDK setup through the aggregate gate.
+Subsequent CI corrections use a PR under the newly active branch protection.

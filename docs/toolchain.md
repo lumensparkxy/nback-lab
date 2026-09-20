@@ -34,7 +34,9 @@ Install Android Studio or command-line SDK tools, JDK 25 and Python 3.11+.
 Through SDK Manager install Android SDK Platform 37 (`platforms;android-37.0`), Build Tools 36.0.0,
 Platform Tools, Android Emulator and a system image for the host architecture.
 Use an ARM64 image on Apple Silicon; CI uses an x86_64 API 36 emulator on Linux.
-Accept SDK licenses through the SDK tools. No setup script accepts licenses for you.
+Accept SDK licenses through the SDK tools locally. Local setup scripts do not
+accept licenses for you; the CI Android setup action accepts them on its disposable
+runner as part of SDK provisioning.
 
 Set `JAVA_HOME` and `ANDROID_HOME` if they are not in the common locations detected
 by `scripts/env.sh`. Run `./scripts/doctor.sh` and `./scripts/verify.sh`.
