@@ -1,6 +1,6 @@
 # F001 — Fixed-level visual n-back session
 
-Agreement: Draft — complete proposal awaiting owner agreement.
+Agreement: Agreed — owner approved the full contract on 2026-09-20.
 
 Specification: [issue #2](https://github.com/lumensparkxy/nback-lab/issues/2).
 Delivery: [issue #3](https://github.com/lumensparkxy/nback-lab/issues/3).
@@ -174,7 +174,7 @@ Test TalkBack navigation without claiming equivalent nonvisual gameplay support.
 
 ## Acceptance criteria and verification
 
-These are proposed implementation requirements, not assertions of implemented
+These are agreed implementation requirements, not assertions of implemented
 behavior or passing tests. Time and randomness are controllable test inputs.
 
 | ID | Observable criterion | Planned verification |
@@ -192,18 +192,20 @@ behavior or passing tests. Time and randomness are controllable test inputs.
 ## Dependencies
 
 [F000](F000-harness.md) and accepted
-[architecture](../decisions/ADR-002-android-foundation.md). Issue #3 remains gated
-by owner agreement and its harness dependency recorded in GitHub.
+[architecture](../decisions/ADR-002-android-foundation.md). Delivery readiness and
+the remaining harness dependency for issue #3 are tracked in GitHub.
 
-## Open decisions and agreement record
+## Agreement record
 
 On 2026-09-20 the owner asked to proceed with specification issue #2 following
 discussion of fixed 2-back, a 3×3 grid, two warm-up plus 20 scored trials, a
 one-second stimulus every three seconds, one Match button and session-end results.
 
-This document completes that proposal. Owner agreement is still needed for the
-full contract, particularly exactly six matches, accuracy/count presentation,
-interruption/process-loss rules and accessibility scope. No unresolved choice
-has been marked Agreed. After agreement, record its reference here, change the
-agreement state and update the feature index/product summary in the same change.
+On 2026-09-20 the owner approved the completed contract in the issue #2 project
+discussion, including exactly six matches, accuracy and outcome counts,
+interruption/process-loss rules and the visual accessibility scope. Agreement is
+recorded in [issue #2](https://github.com/lumensparkxy/nback-lab/issues/2) and
+delivered through [PR #12](https://github.com/lumensparkxy/nback-lab/pull/12).
+No product decisions remain open for this fixed-level slice. Configurable
+difficulty and persistent history still require their own feature agreements.
 Specification approval is separate from authorization to merge or implement #3.

@@ -27,10 +27,17 @@ separate from implementation status; use GitHub issues for delivery tracking.
 Dual/audio n-back, subscriptions, advertisements, social features, leaderboards,
 remote configuration, research claims, publishing and release signing.
 
-## Decisions still needed before gameplay
+## Agreed first session
 
-Grid layout, trial count, stimulus/response timing, match distribution, scoring,
-warm-up behavior, duplicate input handling, pause/background/process-death behavior,
-supported difficulty range and accessibility behavior for the spatial task.
-See [F001](features/F001-visual-session.md); these are deliberately not invented
-by the scaffold.
+[F001](features/F001-visual-session.md) defines the agreed first playable slice:
+fixed 2-back on all nine cells of a 3×3 grid, two warm-up plus 20 scored trials,
+a one-second highlight every three seconds, and exactly six scored matches.
+One Match control records responses; results show accuracy and all four outcome
+counts. Rotation preserves elapsed timing, interruptions cancel active sessions,
+and process loss discards transient state. Gameplay is visual with fixed timing;
+the spec defines contrast, text-size and accessible-control requirements.
+
+This agreement does not mean gameplay has been implemented. Configurable
+difficulty/practice and persistent history remain draft specifications in
+[F002](features/F002-practice-and-difficulty.md) and
+[F003](features/F003-results-and-history.md).
