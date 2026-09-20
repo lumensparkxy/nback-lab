@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.13'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - name: Install pinned SDK components
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Verify harness, tests, lint and APKs
+        run: ./scripts/verify.sh
+      - name: Prove failed assertions fail the build
+        run: ./scripts/test-failure-gate.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: quality-evidence
+          retention-days: 14
+          path: |
+            engine/build/reports/
+            engine/build/test-results/
+            app/build/reports/
+            app/build/outputs/apk/debug/*.apk
+            artifacts/failure-probe.log
+            artifacts/expected-failure.xml
+
+  android-ui:
+    name: android-ui
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - name: Install pinned SDK components
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Emulator smoke tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: ANDROID_SERIAL=emulator-5554 ./scripts/emulator-test.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: android-ui-evidence
+          retention-days: 14
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/
+
+  gate:
+    name: gate
+    if: always()
+    needs: [quality, android-ui]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require every validation job to succeed
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          UI_RESULT: ${{ needs.android-ui.result }}
+        run: test "$QUALITY_RESULT" = success && test "$UI_RESULT" = success

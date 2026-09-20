@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">N-back</string>
+  <string name="welcome_title">Visual n-back</string>
+  <string name="welcome_description">A simple space for visual memory practice.</string>
+  <string name="welcome_status">Practice sessions are coming soon.</string>
+</resources>

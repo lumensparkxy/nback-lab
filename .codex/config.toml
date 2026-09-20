@@ -1,0 +1,5 @@
+# Models inherit the current user/session selection.
+# Workflow sequencing lives in AGENTS.md and docs/agents.md.
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 2

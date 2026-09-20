@@ -1,0 +1,23 @@
+name: Harness or specification task
+description: Improve tooling, resolve a specification, or investigate a bounded question.
+title: "[Task] "
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: Objective and scope
+      description: Link relevant documents and explicitly bound the task.
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: Completion criteria and evidence
+      description: State observable outputs, required checks and what is excluded.
+    validations:
+      required: true
+  - type: textarea
+    id: blockers
+    attributes:
+      label: Dependencies and decisions
+      description: Include required owner decisions; this task must not silently authorize product changes.

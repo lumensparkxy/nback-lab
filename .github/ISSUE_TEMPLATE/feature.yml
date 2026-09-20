@@ -1,0 +1,39 @@
+name: Feature implementation
+description: Implement a bounded part of an agreed feature specification.
+title: "[Feature] "
+body:
+  - type: input
+    id: spec
+    attributes:
+      label: Feature specification
+      description: Link docs/features/FNNN and the relevant acceptance IDs.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome and scope
+      description: State the user outcome, included work and explicit exclusions.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Reference spec criteria; identify any proposed changes requiring agreement.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification plan
+      description: Tests, emulator scenarios and expected evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and open decisions
+      description: Link blocking issues. Write None only when decisions and dependencies are resolved.
+    validations:
+      required: true

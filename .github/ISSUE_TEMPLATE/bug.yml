@@ -1,0 +1,23 @@
+name: Bug report
+description: Record a reproducible difference from agreed behavior.
+title: "[Bug] "
+body:
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Steps, device/API, app revision, sequence/seed if applicable; no private data.
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Link the relevant feature criterion where possible.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and regression check
+      description: Sanitized logs/screenshots and a proposed regression scenario.
