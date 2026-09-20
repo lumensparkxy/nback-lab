@@ -7,7 +7,7 @@ and an updated specification in the same PR as the implementation.
 | ID | Specification | Agreement |
 | --- | --- | --- |
 | F000 | [Development harness](F000-harness.md) | Agreed blueprint |
-| F001 | [Visual session](F001-visual-session.md) | Draft; resolve rules before implementing |
+| F001 | [Visual session](F001-visual-session.md) | Agreed, 2026-09-20 |
 | F002 | [Practice and difficulty](F002-practice-and-difficulty.md) | Draft |
 | F003 | [Results and local history](F003-results-and-history.md) | Draft |
 
