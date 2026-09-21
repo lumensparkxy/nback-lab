@@ -12,8 +12,11 @@ surface the conflict rather than silently choosing different product behavior.
 
 ## Scope and autonomy
 
-- Implement only a ready issue with agreed acceptance criteria. Investigating or
+- Implement features only from a ready issue with agreed acceptance criteria. Investigating or
   drafting an issue does not authorize implementing unresolved product behavior.
+- A bounded maintenance PR may be its own tracking unit under the
+  [maintenance rules](docs/development.md#maintenance). Explicit scope, review,
+  validation and owner merge approval still apply.
 - The initial harness is authorized by the approved blueprint in this conversation;
   local issue drafts bootstrap tracking until a GitHub repository is available.
 - Work autonomously on implementation, tests and repairs within the agreed scope.
@@ -69,3 +72,6 @@ certify later edits. Update relevant specs and decisions in the same PR.
 Link the issue in the PR and include evidence, limitations and pending decisions.
 Do not merge, close an implementation issue as shipped, or publish without the
 agreed owner authorization. Leave a concise durable handoff if work is incomplete.
+After an authorized merge, follow the repository's
+[delivery closeout](docs/development.md#delivery-closeout). Preserve unique
+evidence and active or uncertain work; clean up only verified completed-task work.

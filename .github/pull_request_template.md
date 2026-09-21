@@ -2,8 +2,9 @@
 
 Explain the concrete problem and resulting behavior.
 
-Closes #ISSUE
-Specification: docs/features/FNNN-...
+Tracking: link the issue and specification for a feature. For bounded maintenance,
+this PR may be the tracking unit; state its scope and compatibility evidence.
+Use `Closes #ISSUE` only when merging fully completes that issue; remove unused placeholders.
 
 ## Acceptance and evidence
 
@@ -13,14 +14,15 @@ Specification: docs/features/FNNN-...
 
 Revision tested:
 Emulator/device and API (if applicable):
-Independent reviewer and findings/disposition:
+Independent reviewer, reviewed revision, findings/disposition and report/excerpt:
+Evidence links and archive identifiers/checksums (omit private logs and machine paths):
 
 ## Limitations and decisions
 
 List skipped checks, unresolved issues, risks and owner decisions. Write None only
 when verified. Link architecture/spec changes and screenshots when relevant.
 
-- [ ] Scope matches the agreed issue/specification.
+- [ ] Scope matches the agreed issue/specification or bounded maintenance contract.
 - [ ] Relevant checks pass for the latest revision.
 - [ ] Meaningful code/harness changes received independent review.
 - [ ] Documentation reflects the implementation.

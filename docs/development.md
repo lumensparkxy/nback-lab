@@ -26,6 +26,24 @@ If an issue changes agreed behavior, amend the spec with owner agreement first.
 Investigation/specification tasks may be ready without gameplay decisions; their
 output is a proposal, not permission to implement it.
 
+## Maintenance
+
+A small, bounded dependency, build-tool or documentation maintenance PR may be
+its own tracking unit. Record the outcome, allowed changes, compatibility evidence,
+validation and remaining decisions in the PR. Separate issue/specification
+placeholders are unnecessary for these changes. Features, unresolved behavior and
+larger independently scheduled work still require a ready issue and agreed criteria.
+Owner approval in the current task can establish the maintenance scope; record its
+scope in the PR without publishing private conversation content.
+
+Maintenance retains independent review for meaningful code/harness changes,
+current-revision checks and owner merge authorization. A dependency bot is a source
+of proposals, not approval. Review upstream compatibility and licensing changes;
+new license terms, major architecture and scope decisions require explicit owner
+agreement. Record a deferred PR's reason and revisit condition in its metadata;
+do not silently accept it, suppress updates or change bot settings. Related approved
+updates may be handled together only with explicit scope and combined verification.
+
 ## Delivery loop
 
 1. Inspect issue, specs, decisions, branch and working tree. Declare assumptions.
@@ -40,6 +58,60 @@ output is a proposal, not permission to implement it.
    and rereview material changes.
 6. Prepare a PR linking the issue with an acceptance/evidence table. Owner reviews
    and authorizes merge. Only merged, accepted delivery closes the implementation issue.
+7. Complete delivery closeout below; personal skills may assist but are not required.
+
+## Delivery closeout
+
+The lead owns these steps after the owner authorizes the concrete merge. Existing
+authorization remains valid for routine, safe cleanup of that completed task unless
+the owner requests retention. A readiness review alone does not authorize merging.
+
+1. Refresh the exact PR head/base, changed files, review evidence, unresolved
+   conversations, required checks and repository rules. Match evidence to that
+   revision. Merge using an allowed strategy with a server-enforced expected-head
+   guard. A changed head needs revalidation; never bypass protection. For multiple
+   PRs, follow dependencies and refresh each remaining PR after the previous merge.
+2. Read back the merged state, commit and target. Reconcile linked issues only
+   when their whole agreed scope is delivered; distinguish queued from merged.
+   Update authorized issue/PR metadata without sending unsolicited comments.
+3. Fetch the scoped remote and fast-forward a clean base checkout. Preserve dirty
+   files and local commits; do not stash, reset or rebase someone else's work.
+4. Record a small durable evidence summary: tested/reviewed revision, commands,
+   results and counts, reviewer findings/disposition, CI run links and limitations.
+   Preserve unique screenshots/reports/APKs outside any worktree being removed,
+   verify copies, and record archive identifiers/checksums. Do not commit private
+   logs, signing data or machine-specific paths. CI artifacts have finite retention;
+   their links alone are not permanent evidence. Avoid rewriting historical records;
+   link later verification when it supersedes an earlier result.
+5. Remove only this completed task's temporary branch/worktree. Check tracked,
+   untracked and ignored content, worktree locks, agent/task ownership, editor/build
+   use and dependent PRs. Never remove the current working directory, primary
+   checkout, permanent/shared branch, active work, new commits or uncertain data.
+   Retain such items and explain why. Do not stop processes to make removal possible.
+6. Prove delivery before deleting: verify exact PR/local head and merge reachability
+   from the fetched base. For squash/rebase, identical PR-head and merge Git trees
+   are sufficient; otherwise establish equivalent delivered content or retain it.
+   Use ordinary worktree removal from a retained directory, then safe branch deletion.
+   Never force removal. If deletion fails only because squash changed ancestry,
+   a verified recovery bundle containing that exact head plus expected-old-SHA
+   guarded ref deletion is permitted. Record the bundle identifier. Prune stale
+   remote tracking refs; repository-configured remote deletion is separate from
+   local cleanup. Do not delete other remote branches as part of this step.
+7. Report merged/queued/blocked PRs, issue outcomes, checks, local base state,
+   cleanup, recovery location and retained work with reasons. Do not start another
+   feature merely because cleanup succeeded.
+
+Required pre-merge checks must pass before merging. This repository also runs CI
+on `main`, but does not make that redundant post-merge run a cleanup prerequisite
+when the merge content is verified identical to the tested PR. If a task/repository
+rule explicitly requires post-merge checks, wait for those before cleanup. Always
+report an unfinished post-merge run as pending with its run link and revision;
+do not imply background monitoring after the task ends. The owner receives that
+handoff unless an agent/automation has explicitly accepted follow-up. On subsequent
+project work, check pending closeout runs and record meaningful failures or completion.
+
+Keep this contract tool-neutral. Optional provider configuration or personal merge
+skills may implement it; a fresh clone must be sufficient to discover the rules.
 
 ## Definition of done
 
