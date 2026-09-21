@@ -46,7 +46,7 @@ class RoomHistoryTest {
         val file = file(); val store = RoomHistoryStore(context, file)
         try {
             val good = sampleRecord()
-            for (bad in listOf(good.copy(level = 0), good.copy(level = 4), good.copy(rulesVersion = 2),
+            for (bad in listOf(good.copy(level = 0), good.copy(level = 4), good.copy(rulesVersion = 3),
                 good.copy(hits = -1), good.copy(hits = Int.MAX_VALUE, misses = Int.MAX_VALUE),
                 good.copy(falseAlarms = 4), good.copy(completedAt = Long.MAX_VALUE), good.copy(id = ""))) {
                 fails { store.save(bad) }
@@ -67,7 +67,7 @@ class RoomHistoryTest {
                     "random" -> file.writeText("not a database")
                     "empty" -> file.writeBytes(byteArrayOf())
                     "truncated" -> file.writeBytes(file.readBytes().take(120).toByteArray())
-                    "version" -> sql(file, "PRAGMA user_version = 2")
+                    "version" -> sql(file, "PRAGMA user_version = 3")
                     "identity" -> sql(file, "UPDATE room_master_table SET identity_hash = 'different'")
                     "columns" -> sql(file, "ALTER TABLE sessions ADD COLUMN unexpected INTEGER")
                 }
@@ -108,7 +108,7 @@ class RoomHistoryTest {
                 connection.prepare("PRAGMA journal_mode = WAL").use { it.step() }
                 connection.prepare("PRAGMA wal_autocheckpoint = 0").use { it.step() }
                 connection.prepare("BEGIN TRANSACTION").use { it.step() }
-                connection.prepare("INSERT INTO sessions VALUES (?, ?, ?, 1, 4, 2, 3, 11)").use { insert ->
+                connection.prepare("INSERT INTO sessions (id, completedAt, level, rulesVersion, hits, misses, falseAlarms, correctRejections) VALUES (?, ?, ?, 1, 4, 2, 3, 11)").use { insert ->
                     repeat(10_000) { index ->
                         insert.bindText(1, "record-%05d".format(index)); insert.bindLong(2, 1_750_000_000_000L + index / 2)
                         insert.bindLong(3, (index % 3 + 1).toLong()); insert.step(); insert.reset()

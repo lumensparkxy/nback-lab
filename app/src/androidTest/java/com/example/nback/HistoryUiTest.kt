@@ -38,7 +38,7 @@ class HistoryUiTest {
             }, CoroutineScope(job + Dispatchers.Main.immediate))
             model = SessionViewModel(object : LevelSettings {
                 override suspend fun load() = LoadedLevel(3)
-                override suspend fun save(level: Int) = Unit
+                override suspend fun save(level: Int, modeMask: Int) = Unit
             }, history).also { holder.put("model", it); it.resume() }
         }
         compose.setContent { NBackApp(model) }
@@ -53,6 +53,7 @@ class HistoryUiTest {
         launch(listOf(sampleRecord("a", 1), sampleRecord("b", 3)))
         open()
         compose.onNodeWithTag("filter_2").performScrollTo().performClick()
+        compose.onNodeWithTag("history_list").performScrollToNode(hasText("No saved 2-back sessions yet"))
         compose.onNodeWithText("No saved 2-back sessions yet").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("clear_history").performScrollTo().performClick()
         compose.onNodeWithText("Clear all history?").assertIsDisplayed()
@@ -68,13 +69,14 @@ class HistoryUiTest {
         compose.onNodeWithTag("clear_history").assertIsNotEnabled()
         compose.onNodeWithTag("home").performScrollTo().performClick()
         open(); compose.onNodeWithTag("filter_0").assertIsSelected()
+        compose.onNodeWithTag("history_list").performScrollToNode(hasText("No saved sessions yet"))
         compose.onNodeWithText("No saved sessions yet").performScrollTo().assertIsDisplayed()
     }
     @Test fun tenThousandRowsStayLazyAndDetailBackRetainsFilterAndScroll() {
         launch((0 until 10_000).map { sampleRecord("r$it", it % 3 + 1, 1_750_000_000_000L + it) })
         open()
         compose.onNodeWithTag("filter_3").performScrollTo().performClick()
-        compose.onNodeWithTag("history_list").performScrollToIndex(105)
+        compose.onNodeWithTag("history_list").performScrollToIndex(106)
         compose.onNodeWithTag("record_r9698").performClick()
         compose.onNodeWithText("Hits: 4 of 6").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("False alarms: 3 of 14").performScrollTo().assertIsDisplayed()
@@ -85,9 +87,30 @@ class HistoryUiTest {
         assertTrue(model.historyNavigation.scrollIndex >= 100)
         compose.onNodeWithTag("history_list").performScrollToIndex(0)
         compose.onNodeWithTag("filter_0").performClick()
-        compose.onNodeWithTag("history_list").performScrollToIndex(10004)
+        compose.onNodeWithTag("history_list").performScrollToIndex(10005)
         compose.onNodeWithTag("record_r0").assertIsDisplayed()
         compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().let { assertTrue("Lazy list must not compose 10000 rows", it.size < 100) }
+    }
+    @Test fun exactModeFiltersExcludeOtherCombinationsAndRetainAcrossDetail() {
+        launch(listOf(sampleRecord("position", 2), multiRecord("pair", 3), multiRecord("triple", 7), multiRecord("other-level", 3).copy(level = 1)))
+        open()
+        compose.onNodeWithTag("mode_filter_menu").performScrollTo().performClick()
+        compose.onNodeWithTag("mode_filter_3").performScrollTo().performClick()
+        compose.onNodeWithTag("filter_2").performScrollTo().performClick()
+        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("record_pair"))
+        compose.onNodeWithTag("record_pair").performClick()
+        compose.onNodeWithTag("accuracy_2").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("accuracy_4").assertDoesNotExist()
+        compose.runOnIdle { model.back() }
+        assertEquals(3, model.historyNavigation.modeFilter); assertEquals(2, model.historyNavigation.filter)
+        compose.onNodeWithTag("record_position").assertDoesNotExist()
+        compose.onNodeWithTag("record_triple").assertDoesNotExist()
+        compose.onNodeWithTag("record_other-level").assertDoesNotExist()
+        compose.onNodeWithTag("clear_history").performScrollTo().performClick()
+        compose.onNodeWithTag("confirm_clear").performClick()
+        compose.waitUntil { rows.records.isEmpty() }
+        compose.onNodeWithTag("home").performScrollTo().performClick(); open()
+        assertEquals(0, model.historyNavigation.modeFilter)
     }
     @Test fun failedReadsHideRowsAndClearAndRetryRestoresThem() {
         launch(listOf(sampleRecord()))
@@ -96,11 +119,13 @@ class HistoryUiTest {
         compose.waitUntil { history.state.load == HistoryLoad.FAILED }
         compose.onNodeWithTag("clear_history").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithTag("record_one").assertDoesNotExist()
+        compose.onNodeWithTag("history_list").performScrollToNode(hasText("Couldn’t load history."))
         compose.onNodeWithText("Couldn’t load history.").performScrollTo().assertIsDisplayed()
         compose.runOnIdle { readFailure = false }
         compose.onNodeWithTag("retry_load").performScrollTo().performClick()
         compose.waitUntil { history.state.load == HistoryLoad.READY }
-        compose.onNodeWithTag("record_one").performScrollTo().performClick()
+        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("record_one"))
+        compose.onNodeWithTag("record_one").performClick()
         compose.runOnIdle { history.clear() }
         compose.waitUntil { history.state.records.isEmpty() }
         compose.onNodeWithText("This result is no longer in history").assertIsDisplayed()

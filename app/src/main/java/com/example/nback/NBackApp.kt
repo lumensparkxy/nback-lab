@@ -1,6 +1,5 @@
 package com.example.nback
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,13 +35,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.activity.compose.LocalActivity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -52,6 +47,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.nback.engine.StimulusType
 import com.example.nback.engine.SessionScreen
 import com.example.nback.engine.SessionState
 
@@ -59,7 +55,6 @@ private val Ink = Color(0xFF173C38)
 private val Paper = Color(0xFFF6F5EF)
 private val Muted = Color(0xFF465B57)
 private val Cell = Color(0xFFE1E6DF)
-private val Active = Color(0xFF18675A)
 
 @Composable
 internal fun NBackApp(session: SessionViewModel) {
@@ -73,10 +68,10 @@ internal fun NBackApp(session: SessionViewModel) {
     )) {
         val time = historyTime(session.formatRevision)
         if (session.historyNavigation.open) HistoryScreen(session, time)
-        else SessionContent(state, session::start, session::match, session::home, session.settings,
+        else SessionContent(state, session::start, { session.match() }, session::home, session.settings,
             session::selectLevel, session::practice, session::nextExample, session::retrySave,
             session.history.state, session.resultId, time, session::openHistory,
-            { session.history.retry(session.resultId) }, { session.history.retry() })
+            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match)
     }
 }
 
@@ -87,12 +82,13 @@ internal fun SessionContent(
     onPractice: () -> Unit = {}, onNext: (Long) -> Unit = {}, onRetry: () -> Unit = {},
     history: HistoryState = HistoryState(), resultId: String? = null, time: HistoryTime = HistoryTime(),
     onHistory: () -> Unit = {}, onRetryResult: () -> Unit = {}, onRetryAll: () -> Unit = {},
+    onToggleType: (StimulusType) -> Unit = {}, onTypeMatch: (StimulusType) -> Unit = { onMatch() },
 ) {
     Scaffold(containerColor = Paper) { insets ->
         Box(Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp, vertical = 16.dp)) {
             when (state.screen) {
-                SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll)
-                SessionScreen.PLAYING -> Playing(state, onMatch, onHome)
+                SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType)
+                SessionScreen.PLAYING -> Playing(state, onTypeMatch, onHome)
                 SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
                 SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
                 SessionScreen.PRACTICE_FEEDBACK, SessionScreen.PRACTICE_COMPLETE -> key(state.feedback?.token) { PracticeExplanation(state, onNext, onPractice, onStart, onHome) }
@@ -108,30 +104,16 @@ internal fun PageTitle(text: String) {
 }
 
 @Composable
-private fun Instructions(settings: SettingsState, onSelect: (Int) -> Unit, onStart: () -> Unit, onPractice: () -> Unit, onRetry: () -> Unit, history: HistoryState, onHistory: () -> Unit, onRetryAll: () -> Unit) {
+private fun Instructions(settings: SettingsState, onSelect: (Int) -> Unit, onStart: () -> Unit, onPractice: () -> Unit, onRetry: () -> Unit, history: HistoryState, onHistory: () -> Unit, onRetryAll: () -> Unit, onToggleType: (StimulusType) -> Unit) {
     val level = settings.level
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Text(stringResource(R.string.session_eyebrow, level), style = MaterialTheme.typography.labelLarge, color = Muted)
+        Text(modeTitle(settings.modeMask, level), style = MaterialTheme.typography.labelLarge, color = Muted)
         PageTitle(stringResource(R.string.welcome_title))
+        TypeSettings(settings, onToggleType)
         DifficultySettings(settings, onSelect, onRetry)
         ActionButton(stringResource(R.string.history), onHistory, tag = "history")
         UnsavedSummary(history, onRetryAll)
-        Text(stringResource(when (level) { 1 -> R.string.instructions_1; 3 -> R.string.instructions_3; else -> R.string.instructions }), style = MaterialTheme.typography.bodyLarge)
-        Surface(color = Color.White, shape = RoundedCornerShape(24.dp)) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(pluralStringResource(R.plurals.example_heading, level, level), fontWeight = FontWeight.SemiBold)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    for ((index, cell) in ((0 until level).map { it * 4 } + 0).withIndex()) {
-                        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            PositionGrid(cell, Modifier.fillMaxWidth().height(76.dp), stringResource(R.string.example_grid, index + 1))
-                            Text(if (index == level) "A" else ('A' + index).toString(), fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-                Text(stringResource(when (level) { 1 -> R.string.example_1; 3 -> R.string.example_3; else -> R.string.example_explanation }), style = MaterialTheme.typography.bodyMedium)
-            }
-        }
+        TypeInstructions(settings.modeMask, level)
         Text(pluralStringResource(R.plurals.session_details, level, level, (level + 20) * 3), style = MaterialTheme.typography.bodyMedium, color = Muted)
         Text(stringResource(R.string.visual_requirement), style = MaterialTheme.typography.bodyMedium, color = Muted)
         ActionButton(stringResource(R.string.start), onStart, enabled = !settings.loading, tag = "start")
@@ -141,11 +123,24 @@ private fun Instructions(settings: SettingsState, onSelect: (Int) -> Unit, onSta
 }
 
 @Composable
-private fun Playing(state: SessionState, onMatch: () -> Unit, onHome: () -> Unit) {
+private fun Playing(state: SessionState, onMatch: (StimulusType) -> Unit, onHome: () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        if (maxWidth > maxHeight) {
+        if (maxWidth > maxHeight && state.config.types.size > 1) {
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
+                    StimulusView(state.stimulus, state.config.modeMask, Modifier.weight(1f).fillMaxSize())
+                    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Progress(state)
+                        if (state.config.practice) SkipButton(onHome)
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    for (type in state.config.types) Column(Modifier.weight(1f)) { TypeResponseControl(state, type, onMatch) }
+                }
+            }
+        } else if (maxWidth > maxHeight) {
             Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                PositionGrid(state.highlightedCell, Modifier.weight(1f).fillMaxSize())
+                StimulusView(state.stimulus, state.config.modeMask, Modifier.weight(1f).fillMaxSize())
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     PlayControls(state, onMatch, onHome)
                 }
@@ -153,7 +148,7 @@ private fun Playing(state: SessionState, onMatch: () -> Unit, onHome: () -> Unit
         } else {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Progress(state)
-                PositionGrid(state.highlightedCell, Modifier.weight(1f).fillMaxWidth())
+                StimulusView(state.stimulus, state.config.modeMask, Modifier.weight(1f).fillMaxWidth())
                 ResponseControls(state, onMatch)
                 if (state.config.practice) SkipButton(onHome)
             }
@@ -162,7 +157,7 @@ private fun Playing(state: SessionState, onMatch: () -> Unit, onHome: () -> Unit
 }
 
 @Composable
-private fun PlayControls(state: SessionState, onMatch: () -> Unit, onHome: () -> Unit) {
+private fun PlayControls(state: SessionState, onMatch: (StimulusType) -> Unit, onHome: () -> Unit) {
     Progress(state)
     ResponseControls(state, onMatch)
     if (state.config.practice) SkipButton(onHome)
@@ -170,47 +165,39 @@ private fun PlayControls(state: SessionState, onMatch: () -> Unit, onHome: () ->
 
 @Composable
 private fun Progress(state: SessionState) {
-    Text(stringResource(if (state.config.practice) R.string.practice_eyebrow else R.string.session_eyebrow, state.config.level), color = Muted, style = MaterialTheme.typography.labelLarge)
+    Text(modeTitle(state.config.modeMask, state.config.level, state.config.practice), color = Muted, style = MaterialTheme.typography.labelLarge)
     Text(stringResource(if (state.isWarmUp) R.string.warmup_progress else if (state.config.practice) R.string.practice_progress else R.string.scored_progress, state.progress, state.config.level),
         style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag("progress"))
 }
 
 @Composable
-private fun ResponseControls(state: SessionState, onMatch: () -> Unit) {
-    val messages = listOf(stringResource(R.string.watch_positions),
-        stringResource(R.string.response_recorded), pluralStringResource(R.plurals.match_prompt, state.config.level, state.config.level))
-    // Reserve the largest feedback layout at this width/font size. Changing the
-    // message must not resize or recenter the spatial stimulus grid.
-    Box {
-        messages.forEach { message ->
-            Text(message, style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.alpha(0f).clearAndSetSemantics {})
+private fun ResponseControls(state: SessionState, onMatch: (StimulusType) -> Unit) {
+    if (state.config.modeMask == 1) {
+        // Reserve the largest status layout so input never moves the grid.
+        val messages = listOf(stringResource(R.string.watch_positions),
+            stringResource(R.string.response_recorded), pluralStringResource(R.plurals.match_prompt, state.config.level, state.config.level))
+        Box {
+            messages.forEach { Text(it, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.alpha(0f).clearAndSetSemantics {}) }
+            Text(messages[when { state.isWarmUp -> 0; state.responseRecorded -> 1; else -> 2 }],
+                style = MaterialTheme.typography.bodyLarge, modifier = Modifier.testTag("response_status"))
         }
-        Text(messages[when { state.isWarmUp -> 0; state.responseRecorded -> 1; else -> 2 }],
-            style = MaterialTheme.typography.bodyLarge, modifier = Modifier.testTag("response_status"))
     }
-    ActionButton(stringResource(R.string.match), onMatch, state.canRespond, "match")
+    for (type in state.config.types) TypeResponseControl(state, type, onMatch)
 }
 
 @Composable
-internal fun PositionGrid(highlighted: Int?, modifier: Modifier = Modifier, description: String = stringResource(R.string.visual_grid)) {
-    // One stable semantic node. Cell changes are intentionally not spoken aloud.
-    BoxWithConstraints(modifier.semantics { contentDescription = description }.testTag("grid"), contentAlignment = Alignment.Center) {
-        val side = minOf(maxWidth, maxHeight, 420.dp)
-        Canvas(Modifier.size(side)) {
-            val gap = size.width * 0.035f
-            val cellSide = (size.width - gap * 2) / 3
-            val radius = CornerRadius(cellSide * 0.14f)
-            repeat(9) { index ->
-                val offset = Offset((index % 3) * (cellSide + gap), (index / 3) * (cellSide + gap))
-                drawRoundRect(if (index == highlighted) Active else Cell, offset, Size(cellSide, cellSide), radius)
-                if (index == highlighted) {
-                    val inset = 4.dp.toPx()
-                    drawRoundRect(Color.White, offset + Offset(inset, inset),
-                        Size(cellSide - inset * 2, cellSide - inset * 2), radius, style = Stroke(2.dp.toPx()))
-                }
+private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch: (StimulusType) -> Unit) {
+    Column {
+        if (state.config.modeMask != 1) {
+            val messages = listOf(stringResource(R.string.watch_warmup), stringResource(R.string.type_recorded), stringResource(R.string.match_if_same))
+            Box {
+                messages.forEach { Text(it, style = MaterialTheme.typography.labelMedium, modifier = Modifier.alpha(0f).clearAndSetSemantics {}) }
+                Text(messages[when { state.isWarmUp -> 0; type in state.recordedTypes -> 1; else -> 2 }],
+                    style = MaterialTheme.typography.labelMedium, modifier = Modifier.testTag("status_${type.bit}"))
             }
         }
+        ActionButton(stringResource(R.string.type_match, typeLabel(type)), { onMatch(type) },
+            state.canRespond(type), if (type == StimulusType.POSITION) "match" else "match_${type.bit}")
     }
 }
 
@@ -218,7 +205,7 @@ internal fun PositionGrid(highlighted: Int?, modifier: Modifier = Modifier, desc
 private fun Interrupted(state: SessionState, onStart: () -> Unit, onHome: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         PageTitle(stringResource(if (state.config.practice) R.string.practice_interrupted else R.string.interrupted))
-        Text(stringResource(R.string.session_eyebrow, state.config.level), color = Muted)
+        Text(modeTitle(state.config.modeMask, state.config.level), color = Muted)
         Text(stringResource(R.string.interrupted_detail), style = MaterialTheme.typography.bodyLarge)
         ActionButton(stringResource(if (state.config.practice) R.string.restart_practice else R.string.restart), onStart, tag = "restart")
         HomeButton(onHome)
@@ -228,12 +215,11 @@ private fun Interrupted(state: SessionState, onStart: () -> Unit, onHome: () -> 
 @Composable
 private fun Results(state: SessionState, onStart: () -> Unit, onHome: () -> Unit,
     history: HistoryState, resultId: String?, time: HistoryTime, onHistory: () -> Unit, onRetry: () -> Unit) {
-    val result = requireNotNull(state.result)
     val entry = history.entries[resultId]
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.session_complete), color = Muted, style = MaterialTheme.typography.labelLarge)
         PageTitle(stringResource(R.string.results))
-        ResultSummary(result, state.config.level, entry?.record?.completedAt, time)
+        MultiResultSummary(state.results, state.config.level, entry?.record?.completedAt, time)
         entry?.let { SaveNotice(it.status, history.clearing, onRetry) }
         ActionButton(stringResource(R.string.history), onHistory, tag = "history")
         ActionButton(stringResource(R.string.play_again), onStart, tag = "play_again")
@@ -276,6 +262,8 @@ private fun DifficultySettings(settings: SettingsState, onSelect: (Int) -> Unit,
         settings.notice?.let { notice ->
             Text(stringResource(when (notice) {
                 SettingsNotice.RESET -> R.string.settings_reset
+                SettingsNotice.TYPES_RESET -> R.string.types_reset
+                SettingsNotice.BOTH_RESET -> R.string.settings_both_reset
                 SettingsNotice.LOAD_FAILED -> R.string.settings_load_failed
                 SettingsNotice.SAVE_FAILED -> R.string.settings_save_failed
             }), Modifier.testTag("settings_notice").semantics { liveRegion = LiveRegionMode.Polite })
@@ -296,23 +284,29 @@ private fun PracticeExplanation(state: SessionState, onNext: (Long) -> Unit, onP
     val feedback = requireNotNull(state.feedback)
     val complete = state.screen == SessionScreen.PRACTICE_COMPLETE
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text(stringResource(R.string.practice_eyebrow, state.config.level), color = Muted)
+        Text(modeTitle(state.config.modeMask, state.config.level, true), color = Muted)
         PageTitle(stringResource(if (complete) R.string.practice_complete else R.string.practice_feedback))
         Text(stringResource(R.string.practice_progress, state.progress))
+        val current = feedback.types.mapValues { it.value.current }
+        val reference = feedback.types.mapValues { it.value.reference }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.this_turn))
-                PositionGrid(feedback.currentCell, Modifier.fillMaxWidth().height(120.dp), stringResource(R.string.this_turn))
+                StimulusView(current, state.config.modeMask, Modifier.fillMaxWidth().height(120.dp), "practice_current")
             }
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f)) {
                 Text(pluralStringResource(R.plurals.reference_turn, state.config.level, state.config.level))
-                PositionGrid(feedback.referenceCell, Modifier.fillMaxWidth().height(120.dp), pluralStringResource(R.plurals.reference_turn, state.config.level, state.config.level))
+                StimulusView(reference, state.config.modeMask, Modifier.fillMaxWidth().height(120.dp), "practice_reference")
             }
         }
-        Text(stringResource(if (feedback.matches) R.string.positions_match else R.string.positions_differ),
-            style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("feedback_answer").semantics { liveRegion = LiveRegionMode.Polite })
-        Text(stringResource(if (feedback.responded) R.string.you_tapped else R.string.you_waited))
-        Text(stringResource(if (feedback.matches) R.string.expected_match else R.string.expected_wait))
+        for ((type, response) in feedback.types) {
+            Text(typeLabel(type), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.type_comparison, valueLabel(type, response.current), valueLabel(type, response.reference)))
+            Text(stringResource(if (response.matches) R.string.type_matched else R.string.type_differed, typeLabel(type)),
+                Modifier.testTag(if (type == StimulusType.POSITION) "feedback_answer" else "feedback_${type.bit}").semantics { liveRegion = LiveRegionMode.Polite })
+            Text(if (response.responded) stringResource(R.string.tapped_type, typeLabel(type)) else stringResource(R.string.you_waited))
+            Text(if (response.matches) stringResource(R.string.expected_type, typeLabel(type)) else stringResource(R.string.expected_type_wait, typeLabel(type)))
+        }
         if (complete) {
             ActionButton(stringResource(R.string.practice_again), onPractice, tag = "practice_again")
             ActionButton(stringResource(R.string.start), onStart, tag = "start")

@@ -88,3 +88,16 @@ is not a forensic promise about every WAL/shared-memory sidecar byte.
 The schema identity check matches the exported version-1 schema. A later migration
 must extend the read-only preflight to admit its supported source versions before
 Room runs the preserving migration; changing only the Room version is insufficient.
+
+## F004 extension — 2026-09-21
+
+Owner implementation approval extends the same Room entity to schema version 2.
+Retain original count columns for Position. Add `modeMask` (default 1) and eight
+Colour/Number count columns (default 0). Inactive types must have all-zero counts
+and are never displayed as scores. Each active type satisfies the 6/14/20 rules.
+Rules version 1 remains Position-only; new configurations use rules version 2.
+An additive transactional migration preserves original rows, IDs and timestamps.
+Preflight separately validates supported v1/v2 identities, columns/defaults and
+raw SQLite values before Room opens. Preserve the v1 exported schema and add v2;
+no destructive fallback or synthesized outcomes for inactive types. Save/retry/clear
+remain one atomic session operation through the existing coordinator.

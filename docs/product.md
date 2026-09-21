@@ -50,7 +50,13 @@ repeatable guided practice. Fixed normal timing and neutral feedback remain.
 The owner subsequently approved the detailed F002 contract and ADR-003 settings
 storage decision on the same date. Implementation and revision-specific evidence are tracked by issue #4.
 
-Future expansion may introduce separate colour, sound, letter and symbol modes.
-Each requires its own specification before implementation. These future modes
-remain outside the initial visual-position delivery; combined dual n-back is a
-separate decision. Do not add unavailable-mode controls to the current app.
+On 2026-09-21 the owner approved including combinations immediately in the next
+stimulus-type feature, with users independently toggling which types are active.
+[F004](features/F004-stimulus-types-and-responses.md) drafts Position, Colour and
+Number selection, independent responses, practice and per-type results/history.
+The owner subsequently approved implementation: rules, settings, Number and
+independent responses/results/history are agreed. The explicit Colour name-cue
+choice remains open before that stimulus presentation is implemented. Sound
+remains a later feature. Delivery is tracked in issues #23 and #24.
+These additions remain outside the delivered initial visual-position scope.
+Do not add unavailable-mode controls to the current app.

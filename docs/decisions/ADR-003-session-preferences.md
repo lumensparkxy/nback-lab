@@ -50,3 +50,11 @@ that saved-level updates cannot alter an active session. Settings loss resets to
 Owner agreement is recorded in issue #4 and PR #15; implementation is authorized.
 
 Source: [Android DataStore documentation](https://developer.android.com/topic/libraries/architecture/datastore).
+
+## F004 extension — 2026-09-21
+
+Owner implementation approval extends the same settings store with integer
+`selected_types`: Position=1, Colour=2, Number=4, valid nonempty masks 1–7.
+Missing/invalid masks default to Position without resetting a valid n; report
+invalid masks visibly. Save level and mask together in one ordered DataStore
+edit. Session snapshots are immutable. No new library or persistence layer.

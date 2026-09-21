@@ -59,7 +59,7 @@ class SessionInteractionTest {
         compose.onNodeWithTag("match").assertIsNotEnabled()
         at(6_000)
         compose.onNodeWithTag("match").assertIsEnabled().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp).performClick()
-        compose.onNodeWithText("Response recorded").assertIsDisplayed()
+        compose.onNodeWithText("✓ Response recorded").assertIsDisplayed()
         compose.onNodeWithTag("match").assertIsNotEnabled().performTouchInput { click() }
         at(9_000); compose.onNodeWithTag("match").assertIsEnabled()
         compose.onNodeWithContentDescription("Visual position grid").assertIsDisplayed()

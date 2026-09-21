@@ -2,6 +2,9 @@ package com.example.nback
 
 import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.nback.engine.StimulusType
+import com.example.nback.engine.SessionResult
+import com.example.nback.engine.activeTypes
 import com.example.nback.engine.MonotonicClock
 import com.example.nback.engine.SessionScreen
 import com.example.nback.engine.VisualSession
@@ -53,7 +56,7 @@ class HistoryCoordinatorTest {
         val history = main { HistoryCoordinator(store, CoroutineScope(job + Dispatchers.Main.immediate)) }
         try {
             await { history.state.load == HistoryLoad.READY }
-            main { store.saveGate = CompletableDeferred(); history.capture(sampleRecord()); history.capture(sampleRecord()); history.retry() }
+            main { store.saveGate = CompletableDeferred(); history.capture(multiRecord("one")); history.capture(multiRecord("one")); history.retry() }
             assertEquals(1, store.saves)
             assertEquals(SaveStatus.PENDING, main { history.state.entries.getValue("one").status })
             assertTrue(main { history.state.records.isEmpty() })
@@ -69,7 +72,7 @@ class HistoryCoordinatorTest {
             assertTrue(main { history.state.records.isEmpty() }); assertFalse(main { history.state.canClear })
             main { store.failRead = false; history.reload() }
             await { history.state.load == HistoryLoad.READY }
-            assertEquals(sampleRecord(), main { history.state.records.single() })
+            assertEquals(multiRecord("one"), main { history.state.records.single() })
         } finally { job.cancelAndJoin() }
     }
     @Test fun clearCutoffOrdersPendingWritesAndNeverResurrectsOldHandles() = runBlocking<Unit> {
@@ -79,13 +82,13 @@ class HistoryCoordinatorTest {
             await { history.state.load == HistoryLoad.READY }
             main {
                 store.saveGate = CompletableDeferred()
-                history.capture(sampleRecord("old")); history.clear(); history.clear(); history.retry("old")
-                history.capture(sampleRecord("new")); store.saveGate!!.complete(Unit)
+                history.capture(multiRecord("old")); history.clear(); history.clear(); history.retry("old")
+                history.capture(multiRecord("new")); store.saveGate!!.complete(Unit)
             }
             await { history.state.entries["new"]?.status == SaveStatus.SAVED }
             assertEquals(1, store.clears); assertEquals(listOf("new"), main { history.state.records.map { it.id } })
             assertEquals(SaveStatus.REMOVED, main { history.state.entries["old"]?.status })
-            main { history.retry("old"); history.capture(sampleRecord("old")) }
+            main { history.retry("old"); history.capture(multiRecord("old")) }
             assertEquals(2, store.saves)
         } finally { job.cancelAndJoin() }
     }
@@ -94,7 +97,7 @@ class HistoryCoordinatorTest {
         val history = main { HistoryCoordinator(store, CoroutineScope(job + Dispatchers.Main.immediate)) }
         try {
             await { history.state.load == HistoryLoad.READY }
-            main { store.loseAck = true; history.capture(sampleRecord()) }
+            main { store.loseAck = true; history.capture(multiRecord("one")) }
             await { history.state.failed == 1 }
             assertEquals(1, store.rows.size)
             main { store.failClear = true; history.clear() }
@@ -103,7 +106,7 @@ class HistoryCoordinatorTest {
             main { store.loseAck = false; history.retry() }
             await { history.state.failed == 0 && history.state.pending == 0 }
             assertEquals(1, store.rows.size)
-            main { store.failSave = true; history.capture(sampleRecord("failed")) }
+            main { store.failSave = true; history.capture(multiRecord("failed")) }
             await { history.state.failed == 1 }
             main { store.failClear = false; history.clear() }
             await { !history.state.clearing }
@@ -117,7 +120,7 @@ class HistoryCoordinatorTest {
         val history = main { HistoryCoordinator(store, CoroutineScope(job + Dispatchers.Main.immediate)) }
         try {
             await { history.state.load == HistoryLoad.READY }
-            main { history.capture(sampleRecord()) }
+            main { history.capture(multiRecord("one")) }
             await { history.state.records.size == 1 }
             main { store.readGate = CompletableDeferred(); history.clear() }
             await { history.state.entries["one"]?.status == SaveStatus.REMOVED }
@@ -130,7 +133,7 @@ class HistoryCoordinatorTest {
         val job = SupervisorJob(); val store = ControlledStore()
         val history = main { HistoryCoordinator(store, CoroutineScope(job + Dispatchers.Main.immediate)) }
         await { history.state.load == HistoryLoad.READY }
-        main { store.saveGate = CompletableDeferred(); history.capture(sampleRecord()); history.clear() }
+        main { store.saveGate = CompletableDeferred(); history.capture(multiRecord("one")); history.clear() }
         job.cancelAndJoin()
         assertEquals(SaveStatus.PENDING, main { history.state.entries["one"]?.status })
         assertTrue(main { history.state.clearing }); assertTrue(store.rows.isEmpty())
@@ -142,7 +145,7 @@ class HistoryCoordinatorTest {
             val holder = ViewModelStore()
             val preferences = object : LevelSettings {
                 override suspend fun load() = LoadedLevel(level)
-                override suspend fun save(level: Int) = Unit
+                override suspend fun save(level: Int, modeMask: Int) = Unit
             }
             val engine = VisualSession(MonotonicClock { time }) { n -> generateSequence(Random(42), n) }
             val model = main { SessionViewModel(preferences, history, engine, { wallCalls++; 1_750_000_000_000L }, { "run-${++ids}" })
@@ -172,12 +175,61 @@ class HistoryCoordinatorTest {
             } finally { main { holder.clear() }; job.cancelAndJoin() }
         }
     }
+    @Test fun viewModelCapturesEveryModeWithDistinctPerTypeScoresAtAllTerminalEvents() = runBlocking<Unit> {
+        for (mask in 1..7) for (event in listOf("refresh", "match", "back", "interrupt", "home")) {
+            val job = SupervisorJob(); val store = ControlledStore(); var time = 0L
+            val history = main { HistoryCoordinator(store, CoroutineScope(job + Dispatchers.Main.immediate)) }
+            val holder = ViewModelStore()
+            val preferences = object : LevelSettings {
+                override suspend fun load() = LoadedLevel(2, modeMask = mask)
+                override suspend fun save(level: Int, modeMask: Int) = Unit
+            }
+            val streams = activeTypes(mask).associateWith { generateSequence(Random(it.bit), 2, it.cardinality) }
+            val engine = VisualSession.withTypes(MonotonicClock { time }) { type, _ -> streams.getValue(type) }
+            val model = main { SessionViewModel(preferences, history, engine, { 1_750_000_000_000L }, { "captured" })
+                .also { holder.put("model", it); it.resume() } }
+            try {
+                await { !model.settings.loading && history.state.load == HistoryLoad.READY }
+                main {
+                    model.start()
+                    for (i in 2 until 22) {
+                        time = i * 3000L; model.refresh()
+                        for (type in activeTypes(mask)) {
+                            if (type == StimulusType.NUMBER || type == StimulusType.POSITION && streams.getValue(type)[i] == streams.getValue(type)[i - 2]) model.match(type)
+                        }
+                    }
+                    time = 66000
+                    when (event) {
+                        "match" -> model.match(activeTypes(mask).first())
+                        "back" -> model.back()
+                        "interrupt" -> model.interrupt()
+                        "home" -> model.home()
+                        else -> model.refresh()
+                    }
+                    repeat(3) { model.refresh() }
+                }
+                await { history.state.records.size == 1 }
+                val record = main { history.state.records.single() }
+                assertEquals(mask, record.modeMask); assertEquals(2, record.rulesVersion); assertEquals(1, store.saves)
+                val expected = activeTypes(mask).associateWith { type -> when (type) {
+                    StimulusType.POSITION -> SessionResult(6, 0, 0, 14)
+                    StimulusType.COLOUR -> SessionResult(0, 6, 0, 14)
+                    StimulusType.NUMBER -> SessionResult(6, 0, 14, 0)
+                } }
+                assertEquals(expected, record.results()); record.validated()
+                if (mask and 1 == 0) assertEquals(SessionResult(), record.result())
+                if (mask and 2 == 0) assertEquals(listOf(0,0,0,0), listOf(record.colourHits, record.colourMisses, record.colourFalseAlarms, record.colourCorrectRejections))
+                if (mask and 4 == 0) assertEquals(listOf(0,0,0,0), listOf(record.numberHits, record.numberMisses, record.numberFalseAlarms, record.numberCorrectRejections))
+            } finally { main { holder.clear() }; job.cancelAndJoin() }
+        }
+    }
+
     @Test fun restartAndPlayAgainUseNewIdsPracticeAndPartialSessionsNeverSave() = runBlocking<Unit> {
         val job = SupervisorJob(); val history = main { testHistory(CoroutineScope(job + Dispatchers.Main.immediate)) }
         val holder = ViewModelStore(); var time = 0L; var ids = 0
         val preferences = object : LevelSettings {
             override suspend fun load() = LoadedLevel(1)
-            override suspend fun save(level: Int) = Unit
+            override suspend fun save(level: Int, modeMask: Int) = Unit
         }
         val engine = VisualSession(MonotonicClock { time }) { n -> generateSequence(Random(1), n) }
         val model = main { SessionViewModel(preferences, history, engine, { 1_750_000_000_000L }, { "id-${++ids}" }).also { holder.put("m", it); it.resume() } }
