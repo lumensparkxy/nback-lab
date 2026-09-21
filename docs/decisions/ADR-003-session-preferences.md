@@ -1,6 +1,6 @@
 # ADR-003 — Persist the selected level separately from session history
 
-Status: Proposed — part of the F002 contract awaiting owner agreement
+Status: Accepted — owner approved with F002 on 2026-09-21
 
 Date: 2026-09-21
 
@@ -10,9 +10,9 @@ Date: 2026-09-21
 selected n in 1..3. Gameplay and practice remain transient. F003 history has
 unresolved data/storage requirements; choosing a database for it now would add
 scope without a settled need. ADR-002's deferred storage decision concerned that
-history; this proposal makes a narrow exception for settings only.
+history; this decision makes a narrow exception for settings only.
 
-## Proposed decision
+## Decision
 
 Use one application-scoped Preferences DataStore instance in the Android `app`
 module, behind a small settings adapter. Persist only integer `selected_n`;
@@ -22,8 +22,8 @@ specified in F002. Do not perform storage I/O in Compose or in the pure Kotlin
 engine. Snapshot the selected level when creating a session.
 
 Pin `androidx.datastore:datastore-preferences` in the version catalog when
-implementing, after compatibility verification with the current toolchain. No
-dependency is added by this proposal. A small preference does not require a new
+implementing, after compatibility verification with the current toolchain. The
+specification-only PR adds no dependency. A small preference does not require a new
 module, generic repository framework, service locator or database schema.
 
 Keep the app's existing backup/device-transfer exclusions. Do not store sequences,
@@ -47,6 +47,6 @@ adapter fake for injected I/O failure/retry behavior. Verify process restart and
 that saved-level updates cannot alter an active session. Settings loss resets to
 2 rather than reconstructing gameplay.
 
-This decision becomes accepted only with owner agreement recorded in issue #4.
+Owner agreement is recorded in issue #4 and PR #15; implementation is authorized.
 
 Source: [Android DataStore documentation](https://developer.android.com/topic/libraries/architecture/datastore).

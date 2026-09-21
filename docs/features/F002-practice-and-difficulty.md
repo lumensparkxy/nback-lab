@@ -1,7 +1,6 @@
 # F002 — Session settings, difficulty and guided practice
 
-Agreement: Draft — direction approved on 2026-09-21; the detailed contract below
-is proposed for owner review before implementation.
+Agreement: Agreed — owner approved the full contract and implementation on 2026-09-21.
 
 Delivery: [issue #4](https://github.com/lumensparkxy/nback-lab/issues/4).
 
@@ -23,9 +22,9 @@ n-back in this delivery. Do not show unavailable mode buttons. Display
 
 ## Relationship to F001
 
-[F001](F001-visual-session.md) remains the accepted fixed 2-back baseline. Once
-F002 is agreed and implemented, the rules below extend it to configurable n and
-add a separate practice flow. This draft does not retroactively change F001.
+[F001](F001-visual-session.md) remains the accepted fixed 2-back baseline. When
+F002 is implemented, the rules below extend it to configurable n and
+add a separate practice flow. This extension does not retroactively change the delivered F001 baseline.
 
 Only these normal-session assumptions change: selected n replaces fixed 2;
 there are n warm-up trials, n + 20 total trials and a level-specific duration.
@@ -65,7 +64,7 @@ sequence, response, result or practice-completion flag is persisted. A successfu
 saved selection survives process death and ordinary updates. Clear app data resets
 it to 2. Keep existing cloud-backup/device-transfer exclusions; do not enable
 backup as part of this feature. This is separate from F003 session-history storage.
-See proposed [ADR-003](../decisions/ADR-003-session-preferences.md).
+See accepted [ADR-003](../decisions/ADR-003-session-preferences.md).
 
 - Initial load: show a loading state; disable selection and both launch actions
   until the read succeeds or returns a handled failure. Do not briefly permit a
@@ -204,7 +203,7 @@ schema. Additional modes get separate GitHub issues when brought into planning.
 
 ## Acceptance criteria and verification
 
-These proposed criteria are implementation requirements after owner agreement,
+These agreed criteria are implementation requirements,
 not assertions that the feature exists.
 
 | ID | Observable criterion | Planned verification |
@@ -230,18 +229,17 @@ assumptions and regression tests must be updated without weakening F001 coverage
 ## Dependencies and approval
 
 F001 delivery [#3](https://github.com/lumensparkxy/nback-lab/issues/3) is complete.
-F002 implementation requires owner agreement on this detailed contract and
-[ADR-003](../decisions/ADR-003-session-preferences.md). F003 history is not a blocker
+The owner approved this detailed contract and
+[ADR-003](../decisions/ADR-003-session-preferences.md) on 2026-09-21. F003 history is not a blocker
 and its storage choice is not made here. Issue #4 remains the delivery authority;
 a specification PR must not close it as implemented.
 
-## Decisions proposed for approval
+## Agreement record
 
-Approve this contract as a whole, especially n-dependent 63/66/69-second normal
-sessions, n warm-ups plus four practice examples with paused feedback, remembered
-selection/failure semantics, and the separate settings-storage decision. These
-are newly specified details, not already shipped or retrospectively approved.
-
-On 2026-09-21 the owner agreed the direction and asked to proceed with the proposed
-specification-first workflow. Detailed agreement and implementation readiness
-will be recorded in issue #4 after owner review.
+On 2026-09-21 the owner approved the direction, then explicitly approved the full
+contract and ADR-003 presented in [PR #15](https://github.com/lumensparkxy/nback-lab/pull/15).
+Approval includes the 63/66/69-second durations, n warm-ups plus four scripted
+practice examples with paused feedback, remembered-selection/failure semantics,
+and settings storage. The owner authorized merging the specification and
+implementing issue #4. Gameplay implementation still requires validation and
+separate owner authorization to merge its delivery PR.
