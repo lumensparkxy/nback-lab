@@ -14,6 +14,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Slider
+import kotlin.math.roundToInt
+import com.example.nback.engine.SessionConfig
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,11 +39,16 @@ internal class HomeUiState { var helpExpanded by mutableStateOf(false) }
     settings: SettingsState, onSelect: (Int) -> Unit, onStart: () -> Unit,
     onPractice: () -> Unit, onRetry: () -> Unit, history: HistoryState,
     onHistory: () -> Unit, onRetryAll: () -> Unit, onToggleType: (StimulusType) -> Unit,
-    uiState: HomeUiState,
+    uiState: HomeUiState, onInterval: (Int) -> Unit,
 ) {
+    var interval by remember(settings.intervalSeconds) { mutableIntStateOf(settings.intervalSeconds) }
+    val config = SessionConfig(settings.level, modeMask = settings.modeMask, intervalSeconds = interval)
+    val decreaseLabel = stringResource(R.string.decrease_interval)
+    val increaseLabel = stringResource(R.string.increase_interval)
+    val intervalLabel = stringResource(R.string.interval_seconds_label)
     val help = uiState.helpExpanded
     val helpState = stringResource(if (help) R.string.expanded else R.string.collapsed)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             AppIcon(R.drawable.ic_apps)
             Text(stringResource(R.string.app_name), Modifier.weight(1f).padding(start = 8.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -58,20 +66,33 @@ internal class HomeUiState { var helpExpanded by mutableStateOf(false) }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             StepHeading(2, stringResource(R.string.how_far), stringResource(R.string.how_far_detail))
             LevelChoices(settings.level, 1..3, onSelect, "level", !settings.loading)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.time_per_turn, interval), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                TextButton(onClick = { interval--; onInterval(interval) }, enabled = !settings.loading && interval > 1,
+                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("interval_less")
+                        .semantics { contentDescription = decreaseLabel }) { Text("−") }
+                TextButton(onClick = { interval++; onInterval(interval) }, enabled = !settings.loading && interval < 30,
+                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("interval_more")
+                        .semantics { contentDescription = increaseLabel }) { Text("+") }
+            }
+            Slider(value = interval.toFloat(), onValueChange = { interval = it.roundToInt() },
+                onValueChangeFinished = { onInterval(interval) }, valueRange = 1f..30f, steps = 28,
+                enabled = !settings.loading, modifier = Modifier.fillMaxWidth().testTag("interval")
+                    .semantics { contentDescription = intervalLabel })
             SettingsNotices(settings, onRetry)
         }
         HorizontalDivider(color = Line)
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(pluralStringResource(R.plurals.look_back, settings.level, settings.level), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            SessionExample(settings.modeMask, settings.level)
-        }
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(pluralStringResource(R.plurals.session_brief, settings.level, settings.level, (settings.level + 20) * 3), style = MaterialTheme.typography.bodySmall, color = Muted)
-            Text(stringResource(R.string.visual_brief), style = MaterialTheme.typography.bodySmall, color = Muted)
+            Text(pluralStringResource(R.plurals.session_brief, settings.level, settings.level, (config.durationMillis / 1000).toInt()), style = MaterialTheme.typography.bodySmall, color = Muted)
+            Text(stringResource(R.string.visual_brief, (config.exposureMillis / 1000).toInt()), style = MaterialTheme.typography.bodySmall, color = Muted)
         }
         Column {
             ActionButton(stringResource(R.string.start), onStart, !settings.loading, "start")
             QuietButton(stringResource(R.string.practice_invitation), onPractice, "practice", Modifier.fillMaxWidth(), !settings.loading)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(pluralStringResource(R.plurals.look_back, settings.level, settings.level), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            SessionExample(settings.modeMask, settings.level)
         }
         UnsavedSummary(history, onRetryAll)
         TextButton(onClick = { uiState.helpExpanded = !help }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("help")
@@ -81,7 +102,9 @@ internal class HomeUiState { var helpExpanded by mutableStateOf(false) }
         }
         if (help) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             TypeInstructions(settings.modeMask, settings.level)
-            Text(pluralStringResource(R.plurals.session_details, settings.level, settings.level, (settings.level + 20) * 3))
+            Text(pluralStringResource(R.plurals.session_details, settings.level, settings.level, (config.durationMillis / 1000).toInt()))
+            Text(stringResource(R.string.timing_detail, pluralStringResource(R.plurals.seconds_duration, interval, interval),
+                pluralStringResource(R.plurals.seconds_duration, (config.exposureMillis / 1000).toInt(), (config.exposureMillis / 1000).toInt())))
             Text(stringResource(R.string.visual_requirement))
             Text(stringResource(R.string.practice_description))
         }
@@ -154,6 +177,8 @@ internal class HomeUiState { var helpExpanded by mutableStateOf(false) }
     if (settings.saving) Text(stringResource(R.string.settings_saving), Modifier.testTag("settings_saving"))
     settings.notice?.let { notice ->
         Text(stringResource(when (notice) {
+            SettingsNotice.INTERVAL_RESET -> R.string.interval_reset
+            SettingsNotice.SETTINGS_RESET -> R.string.settings_any_reset
             SettingsNotice.RESET -> R.string.settings_reset
             SettingsNotice.TYPES_RESET -> R.string.types_reset
             SettingsNotice.BOTH_RESET -> R.string.settings_both_reset

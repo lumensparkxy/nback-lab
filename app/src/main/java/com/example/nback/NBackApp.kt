@@ -72,7 +72,7 @@ internal fun NBackApp(session: SessionViewModel) {
         else SessionContent(state, session::start, { session.match() }, session::home, session.settings,
             session::selectLevel, session::practice, session::nextExample, session::retrySave,
             session.history.state, session.resultId, time, session::openHistory,
-            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match, session.homeUi)
+            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match, session.homeUi, session::selectInterval)
     }
 }
 
@@ -84,7 +84,7 @@ internal fun SessionContent(
     history: HistoryState = HistoryState(), resultId: String? = null, time: HistoryTime = HistoryTime(),
     onHistory: () -> Unit = {}, onRetryResult: () -> Unit = {}, onRetryAll: () -> Unit = {},
     onToggleType: (StimulusType) -> Unit = {}, onTypeMatch: (StimulusType) -> Unit = { onMatch() },
-    homeUi: HomeUiState = remember { HomeUiState() },
+    homeUi: HomeUiState = remember { HomeUiState() }, onInterval: (Int) -> Unit = {},
 ) {
     Scaffold(containerColor = Paper) { insets ->
         BoxWithConstraints(Modifier.fillMaxSize().padding(insets)) {
@@ -93,7 +93,7 @@ internal fun SessionContent(
             } else 24.dp
             Box(Modifier.fillMaxSize().padding(horizontal = sidePadding, vertical = 16.dp)) {
                 when (state.screen) {
-                    SessionScreen.HOME -> GuidedHome(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType, homeUi)
+                    SessionScreen.HOME -> GuidedHome(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType, homeUi, onInterval)
                     SessionScreen.PLAYING -> Playing(state, onTypeMatch, onHome)
                     SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
                     SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
@@ -213,8 +213,9 @@ private fun Results(state: SessionState, onStart: () -> Unit, onHome: () -> Unit
         Text(stringResource(R.string.session_complete), color = Muted, style = MaterialTheme.typography.labelLarge)
         PageTitle(stringResource(R.string.results))
         entry?.let { SaveNotice(it.status, history.clearing, onRetry) }
-        MultiResultSummary(state.results, state.config.level, entry?.record?.completedAt, time)
+        MultiResultSummary(state.results, state.config.level, entry?.record?.completedAt, time, state.config.intervalSeconds)
         ActionButton(stringResource(R.string.play_again), onStart, tag = "play_again")
+        AccuracyChart(state.config, state.outcomes)
         QuietButton(stringResource(R.string.history), onHistory, tag = "history")
         HomeButton(onHome)
     }

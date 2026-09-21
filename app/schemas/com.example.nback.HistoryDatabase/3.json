@@ -1,0 +1,164 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "b97dde45b9418c7906942fe391ac7b11",
+    "entities": [
+      {
+        "tableName": "sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `completedAt` INTEGER NOT NULL, `level` INTEGER NOT NULL, `rulesVersion` INTEGER NOT NULL, `hits` INTEGER NOT NULL, `misses` INTEGER NOT NULL, `falseAlarms` INTEGER NOT NULL, `correctRejections` INTEGER NOT NULL, `modeMask` INTEGER NOT NULL DEFAULT 1, `colourHits` INTEGER NOT NULL DEFAULT 0, `colourMisses` INTEGER NOT NULL DEFAULT 0, `colourFalseAlarms` INTEGER NOT NULL DEFAULT 0, `colourCorrectRejections` INTEGER NOT NULL DEFAULT 0, `numberHits` INTEGER NOT NULL DEFAULT 0, `numberMisses` INTEGER NOT NULL DEFAULT 0, `numberFalseAlarms` INTEGER NOT NULL DEFAULT 0, `numberCorrectRejections` INTEGER NOT NULL DEFAULT 0, `intervalSeconds` INTEGER NOT NULL DEFAULT 3, `positionOutcomes` TEXT NOT NULL DEFAULT '', `colourOutcomes` TEXT NOT NULL DEFAULT '', `numberOutcomes` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "level",
+            "columnName": "level",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rulesVersion",
+            "columnName": "rulesVersion",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hits",
+            "columnName": "hits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "misses",
+            "columnName": "misses",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "falseAlarms",
+            "columnName": "falseAlarms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "correctRejections",
+            "columnName": "correctRejections",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modeMask",
+            "columnName": "modeMask",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          },
+          {
+            "fieldPath": "colourHits",
+            "columnName": "colourHits",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "colourMisses",
+            "columnName": "colourMisses",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "colourFalseAlarms",
+            "columnName": "colourFalseAlarms",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "colourCorrectRejections",
+            "columnName": "colourCorrectRejections",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "numberHits",
+            "columnName": "numberHits",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "numberMisses",
+            "columnName": "numberMisses",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "numberFalseAlarms",
+            "columnName": "numberFalseAlarms",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "numberCorrectRejections",
+            "columnName": "numberCorrectRejections",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "intervalSeconds",
+            "columnName": "intervalSeconds",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "3"
+          },
+          {
+            "fieldPath": "positionOutcomes",
+            "columnName": "positionOutcomes",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "colourOutcomes",
+            "columnName": "colourOutcomes",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          },
+          {
+            "fieldPath": "numberOutcomes",
+            "columnName": "numberOutcomes",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b97dde45b9418c7906942fe391ac7b11')"
+    ]
+  }
+}

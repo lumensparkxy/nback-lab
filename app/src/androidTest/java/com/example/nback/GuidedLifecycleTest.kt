@@ -44,7 +44,7 @@ class GuidedLifecycleTest {
             val holder = ViewModelStore()
             val fresh = SessionViewModel(object : LevelSettings {
                 override suspend fun load() = LoadedLevel()
-                override suspend fun save(level: Int, modeMask: Int) = Unit
+                override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) = Unit
             }, model.history)
             holder.put("fresh", fresh)
             assertFalse(fresh.homeUi.helpExpanded)

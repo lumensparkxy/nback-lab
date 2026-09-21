@@ -6,7 +6,10 @@ Number in all seven combinations, at 1-, 2- or 3-back, with guided practice and
 local history.** Choose the types to remember and respond independently for each.
 Colours have no name cue on the tile; an active Number appears inside it.
 
-Your difficulty and selected types are remembered locally. Completed normal
+Your difficulty, selected types and 1–30 second turn interval are remembered locally.
+Stimuli remain visible for 1 second at intervals 1–7, 2 seconds at 8–15 and
+3 seconds at 16–30. New completed sessions include a per-type running-accuracy
+chart and accessible turn-by-turn data. Older history retains its original summary. Completed normal
 sessions are saved on-device with per-type results. History filters by exact mode
 and difficulty and offers a confirmed clear across all modes and levels. Existing
 Position-only history is preserved. Practice and unfinished sessions are not saved.

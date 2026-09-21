@@ -101,3 +101,18 @@ Preflight separately validates supported v1/v2 identities, columns/defaults and
 raw SQLite values before Room opens. Preserve the v1 exported schema and add v2;
 no destructive fallback or synthesized outcomes for inactive types. Save/retry/clear
 remain one atomic session operation through the existing coordinator.
+
+## F006 extension — 2026-09-21
+
+Owner approval adds schema 3 and rules version 3 for new sessions: an integer
+`intervalSeconds` and three TEXT outcome strings (Position, Colour, Number).
+Each active type has exactly 20 chronological stable codes: H hit, M miss, F false
+alarm, C correct rejection. Inactive types have empty strings. Derive chart times
+and cumulative percentages in the engine from outcomes and configuration; no
+raw taps, stimulus sequences or redundant percentages are stored.
+
+Additive migration 2→3 preserves existing records with interval 3 and empty
+timelines; rules 1/2 remain legacy summary records. Validate raw SQL types, byte
+and character lengths, allowed codes and exact histogram agreement before reads,
+save, clear and migration. Preserve v1/v2 preflight identities and schema exports.
+New immutable snapshots include outcome strings in identical-retry comparisons.
