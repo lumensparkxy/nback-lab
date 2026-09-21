@@ -20,9 +20,9 @@ are part of the approved product.
 ## Current implementation
 
 The development harness, visual 1-/2-/3-back sessions, Home difficulty settings
-and guided practice are implemented. Only the selected level is persisted;
-session results remain transient. Saved history is not implemented. GitHub issues
-track review and delivery status.
+guided practice and completed-session history are implemented. The selected level
+and committed normal-session summaries are stored locally. Practice, unfinished
+sessions and unsaved results remain transient. GitHub issues track review and delivery status.
 
 ## Not in the initial scope
 
@@ -40,7 +40,7 @@ and process loss discards transient state. Gameplay is visual with fixed timing;
 the spec defines contrast, text-size and accessible-control requirements.
 
 Configurable difficulty/practice is agreed in [F002](features/F002-practice-and-difficulty.md).
-Persistent history remains draft in [F003](features/F003-results-and-history.md).
+Persistent history is agreed in [F003](features/F003-results-and-history.md).
 
 ## Agreed next direction
 
