@@ -29,6 +29,22 @@ A large modular framework would add setup without present product requirements.
 
 ## Consequences and verification
 
-Engine tests run on the JVM; UI/lifecycle tests run on an emulator. The scaffold
-only establishes the module boundary; gameplay contracts are still draft.
+Engine tests run on the JVM; UI/lifecycle tests run on an emulator. [F001](../features/F001-visual-session.md) now defines the agreed fixed-session contract.
 No application network permission or service integration is included.
+
+
+## F001 implementation notes
+
+The pure Kotlin engine accepts a monotonic clock and sequence factory, reconciles
+elapsed trial boundaries, and exposes only current presentation state/results.
+The Android ViewModel retains that engine through configuration recreation without
+saved-state persistence, as required by F001 process-loss behavior. A main-thread
+Handler wakes the engine at stimulus/trial boundaries; Compose only renders state
+and forwards completed activations. Pausing stops callbacks immediately, with the
+interruption decision made after the synchronous lifecycle transition to preserve
+configuration recreation. A resumed activity refreshes from the original clock.
+No new runtime dependencies or persistence layer are needed for this slice.
+
+References: [ViewModel lifetime](https://developer.android.com/topic/libraries/architecture/viewmodel),
+[Compose testing](https://developer.android.com/develop/ui/compose/testing/apis),
+[accessibility verification](https://developer.android.com/develop/ui/compose/accessibility/testing).

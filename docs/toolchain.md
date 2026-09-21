@@ -6,8 +6,8 @@
 | --- | --- |
 | JDK used to run Gradle | 25 (CI: Temurin; Android Studio JBR 25 works locally) |
 | Java/Kotlin bytecode target | 17 |
-| Gradle wrapper | 9.7.0, distribution SHA-256 pinned |
-| Android Gradle Plugin | 9.4.0, built-in Kotlin |
+| Gradle wrapper | 9.7.1, distribution SHA-256 pinned |
+| Android Gradle Plugin | 9.4.1, built-in Kotlin |
 | Kotlin JVM/Compose plugins | 2.4.20 |
 | Compose BOM | 2026.09.00 |
 | Compile / target SDK | 37 / 37 |
@@ -40,7 +40,10 @@ runner as part of SDK provisioning.
 
 Set `JAVA_HOME` and `ANDROID_HOME` if they are not in the common locations detected
 by `scripts/env.sh`. Run `./scripts/doctor.sh` and `./scripts/verify.sh`.
-Open this directory in Android Studio; select JDK 25 as the Gradle JVM and sync.
+Open this directory in Android Studio and sync. The checked-in
+`gradle/gradle-daemon-jvm.properties` selects JDK 25 for the Gradle daemon and
+provides generated download URLs for supported platforms. Parallel IDE sync is
+enabled in `gradle.properties`; the application bytecode target remains 17.
 Gradle downloads pinned dependencies on the first run; the application itself
 does not require network access. Global Gradle caches remain outside the repo.
 
@@ -58,7 +61,7 @@ Reports: `engine/build/reports/tests/test/`, `app/build/reports/lint-results-deb
 `app/build/reports/androidTests/connected/`. APK: `app/build/outputs/apk/debug/app-debug.apk`.
 Temporary logs/screenshots belong in ignored `artifacts/` or CI artifacts.
 
-The engine currently has a deliberately skipped failure probe, not gameplay tests.
+The engine includes gameplay tests and a deliberately skipped harness failure probe.
 Its negative-control script enables a real assertion failure and verifies the
 JUnit report, so dependency/network/build errors cannot masquerade as success.
 
