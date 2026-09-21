@@ -40,10 +40,26 @@ class HistoryLifecycleTest {
             compose.onNodeWithTag("confirm_clear").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
             compose.onNodeWithTag("clear_explanation").assertHeightIsAtLeast(96.dp)
             capture("history-clear-before-scroll")
-            compose.onNodeWithTag("clear_explanation").performTouchInput { swipeUp() }
-            val range = compose.onNodeWithTag("clear_explanation").fetchSemanticsNode().config[
+            val explanation = compose.onNodeWithTag("clear_explanation")
+            val range = explanation.fetchSemanticsNode().config[
                 androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange]
-            assertTrue("Full explanation must be scrollable at 200% in landscape", range.value() > 0f)
+            if (range.maxValue() > 0f) {
+                explanation.performTouchInput { swipeUp() }
+                compose.waitUntil { range.value() > 0f }
+                explanation.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) {
+                    it(0f, range.maxValue())
+                }
+            }
+            val bodyText = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.clear_body)
+            val body = compose.onNodeWithText(bodyText)
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            body.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            val layout = layouts.single()
+            val bodyY = body.fetchSemanticsNode().positionInRoot.y
+            val viewport = explanation.fetchSemanticsNode().boundsInRoot
+            assertTrue("The final line must be reachable, whether content fits or scrolls",
+                bodyY + layout.getLineTop(layout.lineCount - 1) >= viewport.top - 1 &&
+                    bodyY + layout.getLineBottom(layout.lineCount - 1) <= viewport.bottom + 1)
             capture("history-clear-after-scroll")
             compose.onNodeWithTag("cancel_clear").performClick()
         } finally {
