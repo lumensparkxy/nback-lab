@@ -42,3 +42,16 @@ the spec defines contrast, text-size and accessible-control requirements.
 Configurable difficulty/practice and persistent history remain draft specifications in
 [F002](features/F002-practice-and-difficulty.md) and
 [F003](features/F003-results-and-history.md).
+
+## Agreed next direction
+
+On 2026-09-21 the owner approved the direction of Home session settings, manual
+1-/2-/3-back selection (default 2), remembering the chosen level, and optional
+repeatable guided practice. Fixed normal timing and neutral feedback remain.
+The detailed F002 contract and settings-storage proposal still require agreement
+before implementation; the current app remains the fixed 2-back delivery above.
+
+Future expansion may introduce separate colour, sound, letter and symbol modes.
+Each requires its own specification before implementation. These future modes
+remain outside the initial visual-position delivery; combined dual n-back is a
+separate decision. Do not add unavailable-mode controls to the current app.
