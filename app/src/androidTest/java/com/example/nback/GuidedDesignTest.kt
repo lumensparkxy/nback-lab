@@ -67,6 +67,11 @@ class GuidedDesignTest {
         assertTrue("Entire Start is visible without scrolling",
             position.x >= viewport.left && position.y >= viewport.top &&
                 position.x + start.size.width <= viewport.right && position.y + start.size.height <= viewport.bottom)
+        val visible = start.boundsInRoot
+        assertEquals("Start left is not clipped", position.x, visible.left, 1f)
+        assertEquals("Start top is not clipped", position.y, visible.top, 1f)
+        assertEquals("Start right is not clipped", position.x + start.size.width, visible.right, 1f)
+        assertEquals("Start bottom is not clipped", position.y + start.size.height, visible.bottom, 1f)
         capture("home-reference")
         compose.onNodeWithTag("help").performScrollTo().performClick()
         compose.onNodeWithTag("help").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
