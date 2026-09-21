@@ -6,12 +6,15 @@ import androidx.compose.runtime.Composable
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -38,9 +41,12 @@ class GuidedDesignTest {
         compose.setContent { Fixture() }
     }
     @Composable private fun Fixture() {
-            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, scale.value)) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            // Preserve the specified logical viewport even on CI's smaller physical display.
+            val fit = minOf(1f, maxWidth.value / width.value, maxHeight.value / height.value)
+            CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density * fit, scale.value)) {
                 NBackTheme {
-                    Box(Modifier.requiredSize(width.value.dp, height.value.dp)) {
+                    Box(Modifier.requiredSize(width.value.dp, height.value.dp).testTag("design_viewport")) {
                         SessionContent(state.value,
                             { game.start(settings.value.level, modeMask = settings.value.modeMask); state.value = game.state }, {},
                             { game.home(); state.value = game.state }, settings.value,
@@ -49,12 +55,18 @@ class GuidedDesignTest {
                     }
                 }
             }
+        }
     }
     @Test fun selectedReferenceHomeFitsAndHelpExplainsWithoutChangingSetup() {
         show()
         compose.onNodeWithTag("start").assertIsDisplayed()
-        val start = compose.onNodeWithTag("start").fetchSemanticsNode().boundsInRoot
-        assertTrue("Entire Start is visible without scrolling", start.bottom <= with(compose.density) { 820.dp.toPx() })
+        val start = compose.onNodeWithTag("start").fetchSemanticsNode()
+        val viewport = compose.onNodeWithTag("design_viewport").fetchSemanticsNode().boundsInRoot
+        // boundsInRoot is clipped; use the full layout rectangle to catch partial visibility.
+        val position = start.positionInRoot
+        assertTrue("Entire Start is visible without scrolling",
+            position.x >= viewport.left && position.y >= viewport.top &&
+                position.x + start.size.width <= viewport.right && position.y + start.size.height <= viewport.bottom)
         capture("home-reference")
         compose.onNodeWithTag("help").performScrollTo().performClick()
         compose.onNodeWithTag("help").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
@@ -116,7 +128,7 @@ class GuidedDesignTest {
     }
     private fun capture(name: String) {
         val dir = File(InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null), "f005-qa").apply { mkdirs() }
-        compose.onRoot().captureToImage().asAndroidBitmap().let { bitmap ->
+        compose.onNodeWithTag("design_viewport").captureToImage().asAndroidBitmap().let { bitmap ->
             File(dir, "$name.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
             bitmap.recycle()
         }

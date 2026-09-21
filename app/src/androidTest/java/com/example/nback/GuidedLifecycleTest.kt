@@ -32,7 +32,8 @@ class GuidedLifecycleTest {
             model.home(); model.homeUi.helpExpanded = false; model.selectLevel(2)
             com.example.nback.engine.StimulusType.entries.forEach { if (model.settings.modeMask and it.bit == 0) model.toggleType(it) }
         }
-        compose.onNodeWithTag("start").assertIsDisplayed()
+        // Small physical screens may scroll; the reference-size fit has its own test.
+        compose.onNodeWithTag("start").performScrollTo().assertIsDisplayed()
         capture("activity-home")
         compose.onNodeWithTag("help").performScrollTo().performClick()
         compose.activityRule.scenario.recreate()
