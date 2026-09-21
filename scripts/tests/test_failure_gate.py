@@ -10,7 +10,7 @@ REPORT = 'engine/build/test-results/test/TEST-com.example.nback.engine.HarnessFa
 
 
 class FailureGateTest(unittest.TestCase):
-    def run_gate(self, failure_marker=None, stale=False):
+    def run_gate(self, failure_marker=None, stale=False, stale_copy=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'scripts').mkdir()
@@ -20,6 +20,9 @@ class FailureGateTest(unittest.TestCase):
             report.parent.mkdir(parents=True)
             if stale:
                 report.write_text('<testsuite><testcase><failure message="HARNESS_EXPECTED_FAILURE"/></testcase></testsuite>')
+            if stale_copy:
+                (root / 'artifacts').mkdir()
+                (root / 'artifacts/expected-failure.xml').write_text('<testsuite name="previous-attempt"/>')
             # First call represents the failing build; a second call would succeed.
             stub = '#!/usr/bin/env python3\nfrom pathlib import Path\nimport sys\n'
             stub += 'if Path("called").exists(): sys.exit(0)\nPath("called").touch()\n'
@@ -45,6 +48,13 @@ class FailureGateTest(unittest.TestCase):
         code, preserved = self.run_gate('SOME_OTHER_FAILURE')
         self.assertNotEqual(0, code)
         self.assertFalse(preserved)
+
+    def test_failed_new_attempt_removes_previous_copied_evidence(self):
+        for marker in (None, 'SOME_OTHER_FAILURE'):
+            with self.subTest(marker=marker):
+                code, preserved = self.run_gate(marker, stale=True, stale_copy=True)
+                self.assertNotEqual(0, code)
+                self.assertFalse(preserved)
 
 
 if __name__ == '__main__':
