@@ -1,19 +1,19 @@
 # ADR-004 — Store completed session history in Room
 
-Status: Proposed — requires owner approval with F003
+Status: Accepted — owner approved with F003 on 2026-09-21
 
 Date: 2026-09-21
 
 ## Context
 
-[F003](../features/F003-results-and-history.md) proposes an offline collection of
+[F003](../features/F003-results-and-history.md) defines an offline collection of
 immutable completed normal-session summaries. It needs unique IDs, filtered and
 ordered reads, atomic clear, validation and preservation through app upgrades.
 The chosen-level preference already has an independent store under
 [ADR-003](ADR-003-session-preferences.md). This decision must not move gameplay
 rules into Android or turn one history feature into a generic data framework.
 
-## Proposed decision
+## Decision
 
 Use one application-scoped Room database in `app`, with one entity and a small
 DAO/adapter. Persist session ID (unique primary key), completion UTC timestamp,
@@ -67,8 +67,8 @@ and filtered ordering. Version 1 needs creation/reopen/upgrade-from-no-history
 coverage, not a fabricated earlier database migration. Later migrations must be
 covered before schema changes ship.
 
-Owner approval accepts this storage boundary and the F003 contract; implementation
-still requires its own verified PR and separate merge authorization.
+The owner approved this storage boundary and F003 in PR #17 on 2026-09-21.
+Implementation requires its own verified PR and separate merge authorization.
 
 Sources: [Room overview](https://developer.android.com/training/data-storage/room),
 [Room migrations](https://developer.android.com/training/data-storage/room/migrating-db-versions),

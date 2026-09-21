@@ -1,7 +1,6 @@
 # F003 — Results and local history
 
-Agreement: Draft — direction approved on 2026-09-21; detailed contract below
-awaits owner approval before implementation.
+Agreement: Agreed — owner approved the full contract and implementation on 2026-09-21.
 
 Delivery: [issue #5](https://github.com/lumensparkxy/nback-lab/issues/5).
 
@@ -18,7 +17,7 @@ metrics, per-session deletion or release/signing work. A difficulty filter is th
 comparison tool in this delivery; it does not introduce a performance model.
 
 [F001](F001-visual-session.md) and [F002](F002-practice-and-difficulty.md) continue
-to govern gameplay, timing and scoring. Once approved and implemented, F003
+to govern gameplay, timing and scoring. When implemented, F003
 replaces only their completed-normal-results persistence/display assumptions.
 Active sessions, practice, navigation state and unsaved results remain transient;
 process restart opens Home with the remembered difficulty and committed history.
@@ -139,7 +138,7 @@ the same mixed-outcome totals:
 
 ## Retention, deletion and privacy
 
-Proposed retention: keep all committed sessions until the user clears history,
+Agreed retention: keep all committed sessions until the user clears history,
 clears app data or uninstalls. No automatic age/count expiry in this delivery.
 This avoids silently dropping older results. History uses a lazy scrolling list;
 verify empty, single-record and 10,000-record fixtures without rendering every row.
@@ -183,7 +182,7 @@ Do not expose session contents in application logs or public QA artifacts.
 
 ## Data and architecture
 
-Proposed [ADR-004](../decisions/ADR-004-session-history.md) selects a small Room
+Accepted [ADR-004](../decisions/ADR-004-session-history.md) selects a small Room
 store in `app`. One record contains only session ID, completion timestamp, n,
 rules version 1 and the four outcome counts. Accuracy, denominators and duration
 are derived from the agreed rules. Do not store raw grids, seeds, individual taps,
@@ -231,7 +230,10 @@ a specification PR cannot mark runtime criteria complete.
 ## Dependencies and agreement
 
 F001 issue #3 and F002 issue #4 are merged. Their old dependency block is resolved.
-On 2026-09-21 the owner approved the direction and authorized detailed planning.
-Retention without automatic expiry, the score explanation, save/clear/failure
-semantics and ADR-004 are proposals awaiting detailed approval. Issue #5 remains
-the delivery owner and cannot close as shipped when this specification merges.
+On 2026-09-21 the owner approved the direction, then approved the full contract
+and ADR-004 in [PR #17](https://github.com/lumensparkxy/nback-lab/pull/17).
+Agreement includes retention without automatic expiry, the score explanation,
+save/clear/failure semantics and Room storage. The owner authorized merging the
+specification and implementing issue #5. The implementation requires validation
+and separate owner authorization for its delivery merge. Issue #5 remains the
+delivery owner and cannot close as shipped when this specification merges.
