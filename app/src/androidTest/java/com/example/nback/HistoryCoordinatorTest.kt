@@ -143,9 +143,10 @@ class HistoryCoordinatorTest {
             val job = SupervisorJob(); val store = ControlledStore(); var time = 0L; var ids = 0; var wallCalls = 0
             val history = main { HistoryCoordinator(store, CoroutineScope(job + Dispatchers.Main.immediate)) }
             val holder = ViewModelStore()
+            val interval = listOf(1, 8, 16)[level - 1]
             val preferences = object : LevelSettings {
-                override suspend fun load() = LoadedLevel(level)
-                override suspend fun save(level: Int, modeMask: Int) = Unit
+                override suspend fun load() = LoadedLevel(level, intervalSeconds = interval)
+                override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) = Unit
             }
             val engine = VisualSession(MonotonicClock { time }) { n -> generateSequence(Random(42), n) }
             val model = main { SessionViewModel(preferences, history, engine, { wallCalls++; 1_750_000_000_000L }, { "run-${++ids}" })
@@ -155,7 +156,7 @@ class HistoryCoordinatorTest {
                 main {
                     store.saveGate = CompletableDeferred()
                     model.start(); model.start(); assertEquals(1, ids)
-                    time = (level + 20) * 3_000L
+                    time = (level + 20) * interval * 1_000L
                     when (event) {
                         "match" -> model.match()
                         "back" -> model.back()
@@ -172,6 +173,8 @@ class HistoryCoordinatorTest {
                 await { history.state.pending == 0 }
                 val saved = store.rows.values.single()
                 assertEquals(level, saved.level); assertEquals(70, saved.result().accuracy)
+                assertEquals(interval, saved.intervalSeconds); assertEquals(3, saved.rulesVersion)
+                assertEquals(20, saved.outcomes().getValue(StimulusType.POSITION).size)
             } finally { main { holder.clear() }; job.cancelAndJoin() }
         }
     }
@@ -182,7 +185,7 @@ class HistoryCoordinatorTest {
             val holder = ViewModelStore()
             val preferences = object : LevelSettings {
                 override suspend fun load() = LoadedLevel(2, modeMask = mask)
-                override suspend fun save(level: Int, modeMask: Int) = Unit
+                override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) = Unit
             }
             val streams = activeTypes(mask).associateWith { generateSequence(Random(it.bit), 2, it.cardinality) }
             val engine = VisualSession.withTypes(MonotonicClock { time }) { type, _ -> streams.getValue(type) }
@@ -210,7 +213,7 @@ class HistoryCoordinatorTest {
                 }
                 await { history.state.records.size == 1 }
                 val record = main { history.state.records.single() }
-                assertEquals(mask, record.modeMask); assertEquals(2, record.rulesVersion); assertEquals(1, store.saves)
+                assertEquals(mask, record.modeMask); assertEquals(3, record.rulesVersion); assertEquals(1, store.saves)
                 val expected = activeTypes(mask).associateWith { type -> when (type) {
                     StimulusType.POSITION -> SessionResult(6, 0, 0, 14)
                     StimulusType.COLOUR -> SessionResult(0, 6, 0, 14)
@@ -229,7 +232,7 @@ class HistoryCoordinatorTest {
         val holder = ViewModelStore(); var time = 0L; var ids = 0
         val preferences = object : LevelSettings {
             override suspend fun load() = LoadedLevel(1)
-            override suspend fun save(level: Int, modeMask: Int) = Unit
+            override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) = Unit
         }
         val engine = VisualSession(MonotonicClock { time }) { n -> generateSequence(Random(1), n) }
         val model = main { SessionViewModel(preferences, history, engine, { 1_750_000_000_000L }, { "id-${++ids}" }).also { holder.put("m", it); it.resume() } }

@@ -19,12 +19,14 @@ fun activeTypes(modeMask: Int): List<StimulusType> {
     return StimulusType.entries.filter { modeMask and it.bit != 0 }
 }
 
-data class SessionConfig(val level: Int = 2, val practice: Boolean = false, val modeMask: Int = 1) {
-    init { require(level in 1..3); require(modeMask in 1..7) }
+data class SessionConfig(val level: Int = 2, val practice: Boolean = false, val modeMask: Int = 1, val intervalSeconds: Int = 3) {
+    init { require(level in 1..3); require(modeMask in 1..7); require(intervalSeconds in 1..30) }
     val types: List<StimulusType> get() = activeTypes(modeMask)
     val scoredTrials: Int get() = if (practice) 4 else SessionRules.SCORED_TRIALS
     val totalTrials: Int get() = level + scoredTrials
-    val durationMillis: Long get() = totalTrials * SessionRules.TRIAL_MS
+    val intervalMillis: Long get() = intervalSeconds * 1_000L
+    val exposureMillis: Long get() = when (intervalSeconds) { in 1..7 -> 1_000L; in 8..15 -> 2_000L; else -> 3_000L }
+    val durationMillis: Long get() = totalTrials * intervalMillis
 }
 
 /** Cells are 0..8. Exactly six uniformly sampled scored indices are matches. */
@@ -91,6 +93,7 @@ data class SessionState(
     val results: Map<StimulusType, SessionResult> = emptyMap(),
     val config: SessionConfig = SessionConfig(),
     val feedback: PracticeFeedback? = null,
+    val outcomes: Map<StimulusType, List<Outcome>> = emptyMap(),
 ) {
     val highlightedCell: Int? get() = stimulus[StimulusType.POSITION]
     val responseRecorded: Boolean get() = StimulusType.POSITION in recordedTypes
@@ -139,12 +142,13 @@ class VisualSession private constructor(
     private var elapsed = 0L
     private var nextToScore = 0
     private var counts = emptyMap<StimulusType, SessionResult>()
+    private var outcomes = emptyMap<StimulusType, List<Outcome>>()
     private var practiceIndex = 0
     // Never reset across runs: old Next callbacks cannot affect a restarted practice.
     private var feedbackToken = 0L
 
-    fun start(level: Int = 2, practice: Boolean = false, modeMask: Int = 1) {
-        val config = SessionConfig(level, practice, modeMask)
+    fun start(level: Int = 2, practice: Boolean = false, modeMask: Int = 1, intervalSeconds: Int = 3) {
+        val config = SessionConfig(level, practice, modeMask, intervalSeconds)
         if (state.isActive) return
         val sequences = if (practice) practiceSequences(config) else config.types.associateWith { sequenceFactory(it, level).toList() }
         sequences.forEach { (type, sequence) ->
@@ -155,6 +159,7 @@ class VisualSession private constructor(
         responses = config.types.associateWith { BooleanArray(config.totalTrials) }
         nextToScore = level
         counts = config.types.associateWith { SessionResult() }
+        outcomes = config.types.associateWith { emptyList() }
         practiceIndex = 0
         origin = clock.nowMillis()
         elapsed = 0
@@ -170,23 +175,25 @@ class VisualSession private constructor(
 
     private fun advanceNormal() {
         val config = state.config
-        val closed = (elapsed / SessionRules.TRIAL_MS).coerceAtMost(config.totalTrials.toLong()).toInt()
+        val closed = (elapsed / config.intervalMillis).coerceAtMost(config.totalTrials.toLong()).toInt()
         while (nextToScore < closed) {
             counts = counts.mapValues { (type, result) ->
                 val values = streams.getValue(type)
-                result.record(classify(values[nextToScore] == values[nextToScore - config.level], responses.getValue(type)[nextToScore]))
+                val outcome = classify(values[nextToScore] == values[nextToScore - config.level], responses.getValue(type)[nextToScore])
+                outcomes = outcomes + (type to (outcomes.getValue(type) + outcome))
+                result.record(outcome)
             }
             nextToScore++
         }
         if (elapsed >= config.durationMillis) {
-            state = SessionState(SessionScreen.RESULTS, results = counts, config = config)
+            state = SessionState(SessionScreen.RESULTS, results = counts, config = config, outcomes = outcomes)
         } else renderTrial(closed)
     }
 
     private fun advancePractice() {
         val config = state.config
-        val index = if (practiceIndex == 0) (elapsed / SessionRules.TRIAL_MS).coerceAtMost(config.level.toLong()).toInt() else practiceIndex
-        val deadline = if (practiceIndex == 0) (config.level + 1) * SessionRules.TRIAL_MS else SessionRules.TRIAL_MS
+        val index = if (practiceIndex == 0) (elapsed / config.intervalMillis).coerceAtMost(config.level.toLong()).toInt() else practiceIndex
+        val deadline = if (practiceIndex == 0) (config.level + 1) * config.intervalMillis else config.intervalMillis
         if (elapsed >= deadline) {
             val feedback = PracticeFeedback(++feedbackToken, config.types.associateWith { type ->
                 TypeFeedback(streams.getValue(type)[index], streams.getValue(type)[index - config.level], responses.getValue(type)[index])
@@ -198,7 +205,7 @@ class VisualSession private constructor(
 
     private fun renderTrial(index: Int) {
         state = state.copy(trial = index + 1,
-            stimulus = if (elapsed % SessionRules.TRIAL_MS < SessionRules.HIGHLIGHT_MS) streams.mapValues { it.value[index] } else emptyMap(),
+            stimulus = if (elapsed % state.config.intervalMillis < state.config.exposureMillis) streams.mapValues { it.value[index] } else emptyMap(),
             recordedTypes = recordedAt(index), feedback = null)
     }
 
@@ -238,7 +245,7 @@ class VisualSession private constructor(
     /** Scheduling only wakes the engine; elapsed time always comes from the clock. */
     fun millisUntilNextChange(): Long? {
         if (state.screen != SessionScreen.PLAYING) return null
-        val phase = elapsed % SessionRules.TRIAL_MS
-        return if (phase < SessionRules.HIGHLIGHT_MS) SessionRules.HIGHLIGHT_MS - phase else SessionRules.TRIAL_MS - phase
+        val phase = elapsed % state.config.intervalMillis
+        return if (phase < state.config.exposureMillis) state.config.exposureMillis - phase else state.config.intervalMillis - phase
     }
 }

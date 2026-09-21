@@ -65,3 +65,8 @@ Do not add unavailable-mode controls to the current app.
 
 On 2026-09-21 the owner selected Guided Play (design 3) for the complete app.
 [F005](features/F005-guided-design.md) defines this presentation revision.
+
+On 2026-09-21 the owner approved [F006](features/F006-session-interval-and-accuracy-timeline.md):
+a remembered 1–30 second pace, exposure bands of 1/2/3 seconds, and per-type
+cumulative accuracy timelines for new completed sessions and their saved details.
+This supersedes fixed timing and summary-only retention where explicitly stated.

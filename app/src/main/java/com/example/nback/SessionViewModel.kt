@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nback.engine.storageCode
 import com.example.nback.engine.StimulusType
 import com.example.nback.engine.SessionResult
 import com.example.nback.engine.MonotonicClock
@@ -45,7 +46,7 @@ class SessionViewModel(
     private val handler = Handler(Looper.getMainLooper())
     private var resumed = false
     private val tick = Runnable { refresh() }
-    private data class Save(val version: Long, val level: Int, val modeMask: Int)
+    private data class Save(val version: Long, val level: Int, val modeMask: Int, val intervalSeconds: Int)
     private val saves = Channel<Save>(Channel.UNLIMITED)
     private var version = 0L
 
@@ -53,7 +54,7 @@ class SessionViewModel(
         viewModelScope.launch {
             for (save in saves) {
                 try {
-                    preferences.save(save.level, save.modeMask)
+                    preferences.save(save.level, save.modeMask, save.intervalSeconds)
                     if (save.version == version) settings = settings.copy(saving = false)
                 } catch (e: IOException) {
                     if (save.version == version) settings = settings.copy(saving = false, notice = SettingsNotice.SAVE_FAILED)
@@ -67,15 +68,20 @@ class SessionViewModel(
                 val validTypes = loaded.modeMask in 1..7
                 val resetLevel = loaded.reset || !valid
                 val resetTypes = loaded.typesReset || !validTypes
+                val validInterval = loaded.intervalSeconds in 1..30
+                val resetInterval = loaded.intervalReset || !validInterval
                 settings = SettingsState(level = if (valid) loaded.level else 2, loading = false,
                     modeMask = if (validTypes) loaded.modeMask else 1,
+                    intervalSeconds = if (validInterval) loaded.intervalSeconds else 3,
                     notice = when {
+                        resetInterval && (resetLevel || resetTypes) -> SettingsNotice.SETTINGS_RESET
+                        resetInterval -> SettingsNotice.INTERVAL_RESET
                         resetLevel && resetTypes -> SettingsNotice.BOTH_RESET
                         resetLevel -> SettingsNotice.RESET
                         resetTypes -> SettingsNotice.TYPES_RESET
                         else -> null
                     })
-                if (resetLevel || resetTypes) queueSave()
+                if (resetLevel || resetTypes || resetInterval) queueSave()
             } catch (e: IOException) {
                 settings = SettingsState(loading = false, notice = SettingsNotice.LOAD_FAILED)
             }
@@ -95,9 +101,15 @@ class SessionViewModel(
         settings = settings.copy(modeMask = mask, notice = null)
         queueSave()
     }
+    fun selectInterval(seconds: Int) {
+        require(seconds in 1..30)
+        if (settings.loading || state.screen != SessionScreen.HOME || historyNavigation.open) return
+        settings = settings.copy(intervalSeconds = seconds, notice = null)
+        queueSave()
+    }
     private fun queueSave() {
         settings = settings.copy(saving = true)
-        check(saves.trySend(Save(++version, settings.level, settings.modeMask)).isSuccess)
+        check(saves.trySend(Save(++version, settings.level, settings.modeMask, settings.intervalSeconds)).isSuccess)
     }
     fun retrySave() {
         if (!settings.loading && state.screen == SessionScreen.HOME && !historyNavigation.open) {
@@ -112,7 +124,8 @@ class SessionViewModel(
         captureCompletion()
         val level = if (state.screen == SessionScreen.HOME) settings.level else state.config.level
         val practice = state.screen == SessionScreen.INTERRUPTED && state.config.practice
-        game.start(level, practice, if (state.screen == SessionScreen.HOME) settings.modeMask else state.config.modeMask)
+        game.start(level, practice, if (state.screen == SessionScreen.HOME) settings.modeMask else state.config.modeMask,
+            if (state.screen == SessionScreen.HOME) settings.intervalSeconds else state.config.intervalSeconds)
         runId = if (practice) null else newId()
         resultId = null
         refresh()
@@ -121,7 +134,8 @@ class SessionViewModel(
         if (settings.loading || historyNavigation.open || game.state.isActive) return
         captureCompletion()
         game.start(if (state.screen == SessionScreen.HOME) settings.level else state.config.level, practice = true,
-            modeMask = if (state.screen == SessionScreen.HOME) settings.modeMask else state.config.modeMask)
+            modeMask = if (state.screen == SessionScreen.HOME) settings.modeMask else state.config.modeMask,
+            intervalSeconds = if (state.screen == SessionScreen.HOME) settings.intervalSeconds else state.config.intervalSeconds)
         runId = null; resultId = null
         refresh()
     }
@@ -157,9 +171,13 @@ class SessionViewModel(
         val number = current.results[StimulusType.NUMBER] ?: SessionResult()
         val record = HistoryRecord(id, wallClock(), current.config.level, hits = result.hits,
             misses = result.misses, falseAlarms = result.falseAlarms, correctRejections = result.correctRejections,
-            rulesVersion = 2, modeMask = current.config.modeMask,
+            rulesVersion = 3, modeMask = current.config.modeMask,
             colourHits = colour.hits, colourMisses = colour.misses, colourFalseAlarms = colour.falseAlarms, colourCorrectRejections = colour.correctRejections,
-            numberHits = number.hits, numberMisses = number.misses, numberFalseAlarms = number.falseAlarms, numberCorrectRejections = number.correctRejections)
+            numberHits = number.hits, numberMisses = number.misses, numberFalseAlarms = number.falseAlarms, numberCorrectRejections = number.correctRejections,
+            intervalSeconds = current.config.intervalSeconds,
+            positionOutcomes = current.outcomes[StimulusType.POSITION]?.joinToString("") { it.storageCode().toString() } ?: "",
+            colourOutcomes = current.outcomes[StimulusType.COLOUR]?.joinToString("") { it.storageCode().toString() } ?: "",
+            numberOutcomes = current.outcomes[StimulusType.NUMBER]?.joinToString("") { it.storageCode().toString() } ?: "")
         history.capture(record)
         resultId = id
     }

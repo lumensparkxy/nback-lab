@@ -82,9 +82,10 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
 @Composable internal fun ResultSummary(result: SessionResult, level: Int, completedAt: Long?, time: HistoryTime) =
     MultiResultSummary(mapOf(StimulusType.POSITION to result), level, completedAt, time)
 
-@Composable internal fun MultiResultSummary(results: Map<StimulusType, SessionResult>, level: Int, completedAt: Long?, time: HistoryTime) {
+@Composable internal fun MultiResultSummary(results: Map<StimulusType, SessionResult>, level: Int, completedAt: Long?, time: HistoryTime, intervalSeconds: Int = 3) {
     var details by rememberSaveable(results, level, completedAt) { mutableStateOf(false) }
     Text(modeTitle(results.keys.sumOf { it.bit }, level), style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.time_per_turn, intervalSeconds), style = MaterialTheme.typography.bodySmall, color = Muted)
     completedAt?.let { Text(time.format(it, detail = true), Modifier.testTag("completed_at"), style = MaterialTheme.typography.bodySmall, color = Muted) }
     for ((type, result) in results) {
         Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).padding(16.dp),
@@ -165,7 +166,10 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                     HistoryLoad.READY -> {
                         val record = history.records.find { it.id == navigation.detailId }
                         if (record == null) StatusText(stringResource(R.string.history_missing))
-                        else MultiResultSummary(record.results(), record.level, record.completedAt, time)
+                        else {
+                            MultiResultSummary(record.results(), record.level, record.completedAt, time, record.intervalSeconds)
+                            AccuracyChart(com.example.nback.engine.SessionConfig(record.level, modeMask = record.modeMask, intervalSeconds = record.intervalSeconds), record.outcomes())
+                        }
                     }
                 }
                 BackButton(session::back)

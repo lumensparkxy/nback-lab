@@ -6,6 +6,7 @@ and an updated specification in the same PR as the implementation.
 
 | ID | Specification | Agreement |
 | --- | --- | --- |
+| F006 | [Session interval and accuracy timeline](F006-session-interval-and-accuracy-timeline.md) | Agreed, 2026-09-21 |
 | F000 | [Development harness](F000-harness.md) | Agreed blueprint |
 | F001 | [Visual session](F001-visual-session.md) | Agreed, 2026-09-20 |
 | F002 | [Session settings and guided practice](F002-practice-and-difficulty.md) | Agreed, 2026-09-21 |

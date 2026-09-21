@@ -3,10 +3,10 @@
   <string name="app_name">N-back</string>
   <string name="welcome_title">Set up your next round</string>
   <plurals name="session_details">
-    <item quantity="one">%1$d warm-up turn · 20 scored turns · %2$d seconds\nEach square appears for one second. You have the full three-second turn to respond.</item>
-    <item quantity="other">%1$d warm-up turns · 20 scored turns · %2$d seconds\nEach square appears for one second. You have the full three-second turn to respond.</item>
+    <item quantity="one">%1$d warm-up turn · 20 scored turns · %2$d seconds</item>
+    <item quantity="other">%1$d warm-up turns · 20 scored turns · %2$d seconds</item>
   </plurals>
-  <string name="visual_requirement">This task requires seeing the selected positions, colours or numbers and uses fixed three-second turns. A nonvisual mode and adjustable timing are not available.</string>
+  <string name="visual_requirement">This task requires seeing the selected positions, colours or numbers. A nonvisual mode is not available.</string>
   <string name="start">Start session</string>
   <string name="warmup_progress">Warm-up %1$d/%2$d</string>
   <string name="scored_progress">Turn %1$d/20</string>
@@ -31,7 +31,7 @@
   <string name="settings_load_failed">Couldn’t load your saved settings. Using Position and 2-back.</string>
   <string name="settings_save_failed">Couldn’t remember these settings. You can still play.</string>
   <string name="retry">Retry</string>
-  <string name="practice_description">Try four guided examples at your chosen level. Each turn lasts three seconds, then practice pauses to explain the answer. Tap Next example when you are ready.</string>
+  <string name="practice_description">Try four guided examples at your chosen level. Each turn uses your chosen pace, then practice pauses to explain the answer. Tap Next example when you are ready.</string>
   <string name="practice_progress">Practice %1$d/4</string>
   <string name="practice_interrupted">Practice interrupted</string>
   <string name="restart_practice">Restart practice</string>
@@ -124,11 +124,26 @@
     <string name="card_number">Same digit</string>
     <plurals name="look_back"><item quantity="one">Look %1$d turn back</item><item quantity="other">Look %1$d turns back</item></plurals>
     <plurals name="session_brief"><item quantity="one">%1$d warm-up · 20 scored turns · %2$d seconds</item><item quantity="other">%1$d warm-up · 20 scored turns · %2$d seconds</item></plurals>
-    <string name="visual_brief">Visual task · Fixed three-second turns</string>
+    <string name="visual_brief">Visible for %1$d s · Respond until the next turn</string>
     <string name="practice_invitation">New to n-back? Try guided practice</string>
     <string name="how_to_play">How to play</string>
     <string name="result_details">Outcome details</string>
     <string name="history_actions">Manage history</string>
     <string name="collapsed">Collapsed</string>
     <string name="expanded">Expanded</string>
+    <string name="time_per_turn">Time per turn · %1$d s</string>
+    <string name="timing_detail">Each turn lasts %1$s; the tile is visible for %2$s. At 1 second there is no blank gap, so identical turns may look continuous.</string>
+    <string name="interval_reset">Invalid saved interval reset to 3 seconds.</string>
+    <string name="settings_any_reset">Invalid saved settings were restored to their defaults. Valid settings were kept.</string>
+    <string name="chart_title">Accuracy over time</string>
+    <string name="chart_unavailable">Timeline unavailable for this older session.</string>
+    <string name="chart_caveat">Running accuracy includes correct waits. With no responses, final accuracy is 70%.</string>
+    <string name="chart_table">Turn-by-turn data</string>
+    <string name="chart_axis">Elapsed session time · minutes:seconds</string>
+    <string name="chart_warmup">Warm-up: %1$s · excluded from accuracy</string>
+    <string name="chart_row">Turn %1$d · %2$s</string>
+    <plurals name="seconds_duration"><item quantity="one">%1$d second</item><item quantity="other">%1$d seconds</item></plurals>
+    <string name="decrease_interval">Decrease time per turn</string>
+    <string name="increase_interval">Increase time per turn</string>
+    <string name="interval_seconds_label">Time per turn in seconds</string>
 </resources>

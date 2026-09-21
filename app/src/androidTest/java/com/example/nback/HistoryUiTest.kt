@@ -38,7 +38,7 @@ class HistoryUiTest {
             }, CoroutineScope(job + Dispatchers.Main.immediate))
             model = SessionViewModel(object : LevelSettings {
                 override suspend fun load() = LoadedLevel(3)
-                override suspend fun save(level: Int, modeMask: Int) = Unit
+                override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) = Unit
             }, history).also { holder.put("model", it); it.resume() }
         }
         compose.setContent { NBackApp(model) }

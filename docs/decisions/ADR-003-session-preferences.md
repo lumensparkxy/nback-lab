@@ -58,3 +58,10 @@ Owner implementation approval extends the same settings store with integer
 Missing/invalid masks default to Position without resetting a valid n; report
 invalid masks visibly. Save level and mask together in one ordered DataStore
 edit. Session snapshots are immutable. No new library or persistence layer.
+
+## F006 extension — 2026-09-21
+
+Owner approval adds integer `interval_seconds`, default 3 and range 1–30. Save it
+with n and mode in the existing ordered transaction. Missing values default
+silently; invalid values reset only this field with notice. Commit slider changes
+on interaction completion, avoiding a disk write for every drag position.
