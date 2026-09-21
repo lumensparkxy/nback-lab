@@ -19,18 +19,38 @@ are part of the approved product.
 
 ## Current implementation
 
-Only the app shell and development harness are implemented. Feature agreement is
-separate from implementation status; use GitHub issues for delivery tracking.
+The development harness, visual 1-/2-/3-back sessions, Home difficulty settings
+guided practice and completed-session history are implemented. The selected level
+and committed normal-session summaries are stored locally. Practice, unfinished
+sessions and unsaved results remain transient. GitHub issues track review and delivery status.
 
 ## Not in the initial scope
 
 Dual/audio n-back, subscriptions, advertisements, social features, leaderboards,
 remote configuration, research claims, publishing and release signing.
 
-## Decisions still needed before gameplay
+## Agreed first session
 
-Grid layout, trial count, stimulus/response timing, match distribution, scoring,
-warm-up behavior, duplicate input handling, pause/background/process-death behavior,
-supported difficulty range and accessibility behavior for the spatial task.
-See [F001](features/F001-visual-session.md); these are deliberately not invented
-by the scaffold.
+[F001](features/F001-visual-session.md) defines the agreed first playable slice:
+fixed 2-back on all nine cells of a 3×3 grid, two warm-up plus 20 scored trials,
+a one-second highlight every three seconds, and exactly six scored matches.
+One Match control records responses; results show accuracy and all four outcome
+counts. Rotation preserves elapsed timing, interruptions cancel active sessions,
+and process loss discards transient state. Gameplay is visual with fixed timing;
+the spec defines contrast, text-size and accessible-control requirements.
+
+Configurable difficulty/practice is agreed in [F002](features/F002-practice-and-difficulty.md).
+Persistent history is agreed in [F003](features/F003-results-and-history.md).
+
+## Agreed next direction
+
+On 2026-09-21 the owner approved the direction of Home session settings, manual
+1-/2-/3-back selection (default 2), remembering the chosen level, and optional
+repeatable guided practice. Fixed normal timing and neutral feedback remain.
+The owner subsequently approved the detailed F002 contract and ADR-003 settings
+storage decision on the same date. Implementation and revision-specific evidence are tracked by issue #4.
+
+Future expansion may introduce separate colour, sound, letter and symbol modes.
+Each requires its own specification before implementation. These future modes
+remain outside the initial visual-position delivery; combined dual n-back is a
+separate decision. Do not add unavailable-mode controls to the current app.

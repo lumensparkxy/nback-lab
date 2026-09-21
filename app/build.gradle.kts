@@ -1,7 +1,11 @@
 plugins {
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+room { schemaDirectory("$projectDir/schemas") }
 
 android {
     namespace = "com.example.nback"
@@ -42,7 +46,11 @@ kotlin {
 }
 
 dependencies {
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.sqlite.bundled)
+    ksp(libs.androidx.room.compiler)
     implementation(project(":engine"))
+    implementation(libs.androidx.datastore.preferences)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
