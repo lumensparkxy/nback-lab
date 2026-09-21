@@ -92,7 +92,7 @@ class SessionInteractionTest {
             at(origin + 66_000)
             compose.onNodeWithText("75% accuracy").assertIsDisplayed()
             compose.onNodeWithText("Correct: 15/20").assertIsDisplayed()
-            for (label in listOf("Hits: 4", "Misses: 2", "False alarms: 3", "Correct rejections: 11")) {
+            for (label in listOf("Hits: 4 of 6", "Misses: 2", "False alarms: 3 of 14", "Correct rejections: 11")) {
                 compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
             }
         }

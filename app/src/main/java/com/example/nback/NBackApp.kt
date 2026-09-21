@@ -71,7 +71,12 @@ internal fun NBackApp(session: SessionViewModel) {
         primary = Ink, onPrimary = Color.White, background = Paper, onBackground = Ink,
         surface = Paper, onSurface = Ink, onSurfaceVariant = Muted,
     )) {
-        SessionContent(state, session::start, session::match, session::home, session.settings, session::selectLevel, session::practice, session::nextExample, session::retrySave)
+        val time = historyTime(session.formatRevision)
+        if (session.historyNavigation.open) HistoryScreen(session, time)
+        else SessionContent(state, session::start, session::match, session::home, session.settings,
+            session::selectLevel, session::practice, session::nextExample, session::retrySave,
+            session.history.state, session.resultId, time, session::openHistory,
+            { session.history.retry(session.resultId) }, { session.history.retry() })
     }
 }
 
@@ -80,14 +85,16 @@ internal fun SessionContent(
     state: SessionState, onStart: () -> Unit, onMatch: () -> Unit, onHome: () -> Unit,
     settings: SettingsState = SettingsState(loading = false), onSelect: (Int) -> Unit = {},
     onPractice: () -> Unit = {}, onNext: (Long) -> Unit = {}, onRetry: () -> Unit = {},
+    history: HistoryState = HistoryState(), resultId: String? = null, time: HistoryTime = HistoryTime(),
+    onHistory: () -> Unit = {}, onRetryResult: () -> Unit = {}, onRetryAll: () -> Unit = {},
 ) {
     Scaffold(containerColor = Paper) { insets ->
         Box(Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp, vertical = 16.dp)) {
             when (state.screen) {
-                SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry)
+                SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll)
                 SessionScreen.PLAYING -> Playing(state, onMatch, onHome)
                 SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
-                SessionScreen.RESULTS -> Results(state, onStart, onHome)
+                SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
                 SessionScreen.PRACTICE_FEEDBACK, SessionScreen.PRACTICE_COMPLETE -> key(state.feedback?.token) { PracticeExplanation(state, onNext, onPractice, onStart, onHome) }
             }
         }
@@ -95,18 +102,20 @@ internal fun SessionContent(
 }
 
 @Composable
-private fun PageTitle(text: String) {
+internal fun PageTitle(text: String) {
     Text(text, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold,
         modifier = Modifier.semantics { heading() })
 }
 
 @Composable
-private fun Instructions(settings: SettingsState, onSelect: (Int) -> Unit, onStart: () -> Unit, onPractice: () -> Unit, onRetry: () -> Unit) {
+private fun Instructions(settings: SettingsState, onSelect: (Int) -> Unit, onStart: () -> Unit, onPractice: () -> Unit, onRetry: () -> Unit, history: HistoryState, onHistory: () -> Unit, onRetryAll: () -> Unit) {
     val level = settings.level
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         Text(stringResource(R.string.session_eyebrow, level), style = MaterialTheme.typography.labelLarge, color = Muted)
         PageTitle(stringResource(R.string.welcome_title))
         DifficultySettings(settings, onSelect, onRetry)
+        ActionButton(stringResource(R.string.history), onHistory, tag = "history")
+        UnsavedSummary(history, onRetryAll)
         Text(stringResource(when (level) { 1 -> R.string.instructions_1; 3 -> R.string.instructions_3; else -> R.string.instructions }), style = MaterialTheme.typography.bodyLarge)
         Surface(color = Color.White, shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -217,36 +226,23 @@ private fun Interrupted(state: SessionState, onStart: () -> Unit, onHome: () -> 
 }
 
 @Composable
-private fun Results(state: SessionState, onStart: () -> Unit, onHome: () -> Unit) {
+private fun Results(state: SessionState, onStart: () -> Unit, onHome: () -> Unit,
+    history: HistoryState, resultId: String?, time: HistoryTime, onHistory: () -> Unit, onRetry: () -> Unit) {
     val result = requireNotNull(state.result)
+    val entry = history.entries[resultId]
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.session_complete), color = Muted, style = MaterialTheme.typography.labelLarge)
         PageTitle(stringResource(R.string.results))
-        Text(stringResource(R.string.session_eyebrow, state.config.level), color = Muted)
-        Text(stringResource(R.string.accuracy, result.accuracy), style = MaterialTheme.typography.displayMedium,
-            fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag("accuracy"))
-        Text(stringResource(R.string.correct, result.correct), style = MaterialTheme.typography.titleLarge)
-        Outcome(stringResource(R.string.hits), result.hits, stringResource(R.string.hits_detail))
-        Outcome(stringResource(R.string.misses), result.misses, stringResource(R.string.misses_detail))
-        Outcome(stringResource(R.string.false_alarms), result.falseAlarms, stringResource(R.string.false_alarms_detail))
-        Outcome(stringResource(R.string.correct_rejections), result.correctRejections, stringResource(R.string.correct_rejections_detail))
-        Text(stringResource(R.string.accuracy_note), style = MaterialTheme.typography.bodyMedium, color = Muted)
+        ResultSummary(result, state.config.level, entry?.record?.completedAt, time)
+        entry?.let { SaveNotice(it.status, history.clearing, onRetry) }
+        ActionButton(stringResource(R.string.history), onHistory, tag = "history")
         ActionButton(stringResource(R.string.play_again), onStart, tag = "play_again")
         HomeButton(onHome)
     }
 }
 
 @Composable
-private fun Outcome(label: String, count: Int, detail: String) {
-    Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).padding(16.dp)
-        .semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(stringResource(R.string.outcome_count, label, count), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-        Text(detail, style = MaterialTheme.typography.bodyMedium, color = Muted)
-    }
-}
-
-@Composable
-private fun ActionButton(label: String, action: () -> Unit, enabled: Boolean = true, tag: String) {
+internal fun ActionButton(label: String, action: () -> Unit, enabled: Boolean = true, tag: String) {
     Button(onClick = action, enabled = enabled,
         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag(tag),
         colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White,
@@ -256,7 +252,7 @@ private fun ActionButton(label: String, action: () -> Unit, enabled: Boolean = t
 }
 
 @Composable
-private fun HomeButton(onHome: () -> Unit) {
+internal fun HomeButton(onHome: () -> Unit) {
     OutlinedButton(onClick = onHome, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("home")) {
         Text(stringResource(R.string.home), modifier = Modifier.padding(vertical = 6.dp))
     }

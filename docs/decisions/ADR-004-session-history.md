@@ -73,3 +73,18 @@ Implementation requires its own verified PR and separate merge authorization.
 Sources: [Room overview](https://developer.android.com/training/data-storage/room),
 [Room migrations](https://developer.android.com/training/data-storage/room/migrating-db-versions),
 [DataStore guidance](https://developer.android.com/topic/libraries/architecture/datastore).
+
+## Implementation notes
+
+Room 2.8.5, KSP 2.3.12 and bundled SQLite 2.7.1 are pinned with the existing
+AGP/Kotlin/JDK versions. Bundled SQLite avoids the Android framework's default
+corruption handler, which can delete damaged databases. Existing stores undergo
+read-only integrity, version, identity, column and raw SQLite type/value checks
+before Room opens them. DAO transactions also validate stored values before Room
+can coerce numeric types. UTC completion timestamps use civil years 1–9999,
+matching the presentation boundary. Rejected fixture files are preserved; this
+is not a forensic promise about every WAL/shared-memory sidecar byte.
+
+The schema identity check matches the exported version-1 schema. A later migration
+must extend the read-only preflight to admit its supported source versions before
+Room runs the preserving migration; changing only the Room version is insufficient.

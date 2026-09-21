@@ -28,6 +28,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 
 class LevelSettingsTest {
+    private val historyJob = SupervisorJob()
+    private val historyScope = CoroutineScope(Dispatchers.Main.immediate + historyJob)
+    @org.junit.After fun closeHistory() { historyJob.cancel() }
     private fun <T> main(block: () -> T): T {
         var result: Result<T>? = null
         InstrumentationRegistry.getInstrumentation().runOnMainSync { result = runCatching(block) }
@@ -54,7 +57,7 @@ class LevelSettingsTest {
 
     @Test fun loadingRacesFailuresRetryAndActiveSessionIsolation() = runBlocking {
         val prefs = PendingSettings(); val holder = ViewModelStore()
-        val model = main { SessionViewModel(prefs).also { holder.put("test", it); it.resume() } }
+        val model = main { SessionViewModel(prefs, testHistory(historyScope)).also { holder.put("test", it); it.resume() } }
         try {
             main { model.selectLevel(1); model.start(); model.practice() }
             assertTrue(main { model.settings.loading }); assertEquals(SessionScreen.HOME, main { model.state.screen })
@@ -87,7 +90,7 @@ class LevelSettingsTest {
 
     @Test fun invalidRepairCannotOverwriteNewSelectionAndReadFailureStillAllowsPlay() = runBlocking {
         val prefs = PendingSettings(); val holder = ViewModelStore()
-        val model = main { SessionViewModel(prefs).also { holder.put("test", it) } }
+        val model = main { SessionViewModel(prefs, testHistory(historyScope)).also { holder.put("test", it) } }
         try {
             prefs.load.complete(LoadedLevel(99)); await { !model.settings.loading }
             assertEquals(2, main { model.settings.level }); assertEquals(SettingsNotice.RESET, main { model.settings.notice })
@@ -97,7 +100,7 @@ class LevelSettingsTest {
             selected.done.complete(Unit); await { !model.settings.saving }; assertEquals(3, prefs.stored)
         } finally { main { holder.clear() } }
         val failed = PendingSettings(); val failedHolder = ViewModelStore()
-        val fallback = main { SessionViewModel(failed).also { failedHolder.put("test", it) } }
+        val fallback = main { SessionViewModel(failed, testHistory(historyScope)).also { failedHolder.put("test", it) } }
         try {
             failed.load.completeExceptionally(IOException("read unavailable")); await { !fallback.settings.loading }
             assertEquals(SettingsNotice.LOAD_FAILED, main { fallback.settings.notice })
@@ -109,7 +112,7 @@ class LevelSettingsTest {
     @Test fun practiceToNormalAndRestartKeepSnapshotWhileStorageFinishes() = runBlocking {
         val prefs = PendingSettings(); val holder = ViewModelStore(); var time = 0L
         val engine = VisualSession(MonotonicClock { time }) { n -> generateSequence(Random(1), n) }
-        val model = main { SessionViewModel(prefs, engine).also { holder.put("test", it); it.resume() } }
+        val model = main { SessionViewModel(prefs, testHistory(historyScope), engine).also { holder.put("test", it); it.resume() } }
         try {
             prefs.load.complete(LoadedLevel()); await { !model.settings.loading }
             main { model.selectLevel(3); model.practice() }

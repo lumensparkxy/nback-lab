@@ -5,7 +5,6 @@ import android.os.Handler
 import android.os.Looper
 import android.view.WindowManager
 import androidx.activity.OnBackPressedCallback
-import com.example.nback.engine.SessionScreen
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,7 +16,7 @@ class MainActivity : ComponentActivity() {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 require(modelClass == SessionViewModel::class.java)
                 @Suppress("UNCHECKED_CAST")
-                return SessionViewModel(StoredLevelSettings.from(applicationContext)) as T
+                return SessionViewModel(StoredLevelSettings.from(applicationContext), (application as NBackApplication).history) as T
             }
         })[SessionViewModel::class.java]
     }
@@ -30,7 +29,7 @@ class MainActivity : ComponentActivity() {
         // Consult current session state even before the next Compose frame.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (session.state.screen != SessionScreen.HOME) {
+                if (session.handlesBack) {
                     session.back()
                 } else {
                     isEnabled = false
