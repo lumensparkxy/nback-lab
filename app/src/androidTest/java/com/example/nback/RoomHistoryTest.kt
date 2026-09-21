@@ -15,6 +15,9 @@ class RoomHistoryTest {
     private fun file() = File(context.cacheDir, "history-test-${System.nanoTime()}/history.db").also { it.parentFile!!.mkdirs() }
     private fun sql(file: File, vararg statements: String) {
         BundledSQLiteDriver().open(file.absolutePath).use { connection ->
+            // Room's asynchronous invalidation work may briefly hold the writer lock.
+            // Wait for it before injecting fixtures; timeout still fails the test.
+            connection.prepare("PRAGMA busy_timeout = 5000").use { it.step() }
             statements.forEach { query -> connection.prepare(query).use { it.step() } }
         }
     }

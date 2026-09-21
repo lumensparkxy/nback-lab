@@ -57,6 +57,11 @@ The added coroutine clear regression initially inferred a Boolean return, which
 JUnit rejected. Explicit `runBlocking<Unit>` fixes the runner signature with all
 assertions unchanged; the test-only diff also received independent review.
 
+The first hosted 40-test run passed 39 cases; external corruption injection hit
+a SQLite writer lock before its assertion. The fixture connection now waits up
+to five seconds for that lock, still failing on timeout. The store remains open
+and validation assertions are unchanged; independent review found no issues.
+
 Final current-head emulator results, rendered rechecks and hosted CI are recorded
 in the implementation PR linked from issue #5. This record alone does not imply
 that pending checks or owner merge approval have completed.
