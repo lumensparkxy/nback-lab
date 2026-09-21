@@ -96,13 +96,13 @@ internal fun SessionContent(
         BoxWithConstraints(Modifier.fillMaxSize().padding(insets)) {
             val sidePadding = if (state.screen == SessionScreen.PLAYING && maxWidth < 360.dp) 8.dp else 24.dp
             Box(Modifier.fillMaxSize().padding(horizontal = sidePadding, vertical = 16.dp)) {
-            when (state.screen) {
-                SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType)
-                SessionScreen.PLAYING -> Playing(state, onTypeMatch, onHome)
-                SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
-                SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
-                SessionScreen.PRACTICE_FEEDBACK, SessionScreen.PRACTICE_COMPLETE -> key(state.feedback?.token) { PracticeExplanation(state, onNext, onPractice, onStart, onHome) }
-            }
+                when (state.screen) {
+                    SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType)
+                    SessionScreen.PLAYING -> Playing(state, onTypeMatch, onHome)
+                    SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
+                    SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
+                    SessionScreen.PRACTICE_FEEDBACK, SessionScreen.PRACTICE_COMPLETE -> key(state.feedback?.token) { PracticeExplanation(state, onNext, onPractice, onStart, onHome) }
+                }
             }
         }
     }
@@ -210,7 +210,7 @@ private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch
 @Composable
 private fun CompactResponseStatus(recorded: Boolean) {
     val messages = listOf(stringResource(R.string.match_action), stringResource(R.string.type_recorded))
-    Box {
+    Box(contentAlignment = Alignment.Center) {
         messages.forEach { Text(it, style = MaterialTheme.typography.labelSmall, letterSpacing = 0.sp, textAlign = TextAlign.Center, modifier = Modifier.alpha(0f).clearAndSetSemantics {}) }
         Text(messages[if (recorded) 1 else 0], style = MaterialTheme.typography.labelSmall, letterSpacing = 0.sp, textAlign = TextAlign.Center)
     }
