@@ -4,7 +4,7 @@ source "$(dirname "$0")/env.sh"
 cd "$NBACK_ROOT"
 mkdir -p artifacts
 # A pre-test build failure must not reuse evidence from an interrupted older run.
-rm -f engine/build/test-results/test/TEST-com.example.nback.engine.HarnessFailureProbeTest.xml
+rm -f engine/build/test-results/test/TEST-com.example.nback.engine.HarnessFailureProbeTest.xml artifacts/expected-failure.xml
 # --rerun-tasks prevents a cached success from standing in for this experiment.
 if ./gradlew --no-daemon --console=plain :engine:test -PharnessFailureProbe=true --rerun-tasks > artifacts/failure-probe.log 2>&1; then
     echo "ERROR: deliberately failing test was accepted."

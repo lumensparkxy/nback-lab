@@ -1,13 +1,15 @@
 # Contributing
 
 1. Read [the development workflow](docs/development.md) and [product scope](docs/product.md).
-2. Pick a ready GitHub issue with an agreed specification and resolved blockers.
+2. Pick a ready GitHub issue with an agreed specification and resolved blockers,
+   or a bounded maintenance PR under [the maintenance rules](docs/development.md#maintenance).
 3. Inspect the working tree; create `codex/<issue-number>-<short-description>` for
    agent work. Use a separate worktree for genuinely independent simultaneous work.
 4. Make a focused change with acceptance-driven tests and relevant documentation.
 5. Run the shared verification commands and obtain independent review.
-6. Open a PR linking the issue. Record exact evidence and remaining limitations.
+6. Open a PR linking the issue/spec when applicable. Record exact evidence and remaining limitations.
 7. The owner authorizes merging and releases initially.
+8. Verify the merge and complete [delivery closeout](docs/development.md#delivery-closeout).
 
 For the initial repository bootstrap, locally prepared [issue drafts](docs/backlog/README.md)
 stand in for issue numbers until GitHub is connected. This exception does not make
