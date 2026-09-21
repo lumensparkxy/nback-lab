@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
@@ -101,12 +103,26 @@ class MultiTypeUiTest {
                         fail("Nonempty stimulus area mask=$mask font=$scale orientation=$config\n" +
                             compose.onRoot(useUnmergedTree = true).printToString())
                     }
+                    if (warmup.height < with(compose.density) { 96.dp.toPx() }) screenshot("failed-small-grid-$mask-font-$scale-orientation-$config-practice-$practice")
                     grid.assertHeightIsAtLeast(96.dp).assertWidthIsAtLeast(96.dp)
                     activeTypes(mask).forEach { compose.onNodeWithTag(tag(it)).assertIsDisplayed().assertIsNotEnabled().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp) }
+                    val buttons = activeTypes(mask).map { compose.onNodeWithTag(tag(it)).fetchSemanticsNode().boundsInRoot }
+                    val row = compose.onNodeWithTag("response_row").fetchSemanticsNode().boundsInRoot
+                    val area = compose.onNodeWithTag("playing_area").fetchSemanticsNode().boundsInRoot
+                    buttons.forEach { bounds ->
+                        assertTrue("Full response button within content", bounds.top >= area.top && bounds.bottom <= area.bottom + 1f)
+                        assertEquals("Responses share one row", buttons.first().top, bounds.top, 1f)
+                        assertEquals("Responses share equal heights", buttons.first().height, bounds.height, 1f)
+                    }
+                    buttons.zipWithNext().forEach { (left, right) -> assertTrue(left.right < right.left) }
+                    assertEquals("Response row centered under stimulus", compose.onNodeWithTag("playing_area").fetchSemanticsNode().boundsInRoot.center.x, row.center.x, 1f)
+                    if (scale == 1f) assertTrue("Normal response row stays compact", row.height <= with(compose.density) { 112.dp.toPx() })
                     compose.runOnIdle { time = 6000; game.advance(); publish() }
                     assertEquals(warmup, grid.fetchSemanticsNode().boundsInRoot)
                     activeTypes(mask).forEach { type ->
                         compose.onNodeWithTag(tag(type)).assertIsEnabled().performClick()
+                        val recordedBounds = compose.onNodeWithTag(tag(type)).fetchSemanticsNode().boundsInRoot
+                        assertTrue("Recorded button stays fully visible", recordedBounds.bottom <= area.bottom + 1f)
                         val response = compose.onNodeWithTag(tag(type)).fetchSemanticsNode().config
                         if (response.contains(SemanticsProperties.StateDescription)) {
                             assertEquals("✓ Recorded", response[SemanticsProperties.StateDescription])
@@ -150,7 +166,7 @@ class MultiTypeUiTest {
     private fun screenshot(name: String) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val dir = File(instrumentation.targetContext.getExternalFilesDir(null), "f004-qa").apply { mkdirs() }
-        instrumentation.uiAutomation.takeScreenshot().let { bitmap ->
+        compose.onRoot().captureToImage().asAndroidBitmap().let { bitmap ->
             File(dir, "$name.png").outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
             bitmap.recycle()
         }

@@ -10,12 +10,6 @@
   <string name="start">Start session</string>
   <string name="warmup_progress">Warm-up %1$d/%2$d</string>
   <string name="scored_progress">Turn %1$d/20</string>
-  <string name="watch_positions">Watch the warm-up positions.</string>
-  <string name="response_recorded">✓ Response recorded</string>
-  <plurals name="match_prompt">
-    <item quantity="one">Same position as %1$d turn ago?</item>
-    <item quantity="other">Same position as %1$d turns ago?</item>
-  </plurals>
   <string name="visual_grid">Visual position grid</string>
   <string name="interrupted">Session interrupted</string>
   <string name="interrupted_detail">This session ended before it was complete. Restart when you are ready; no partial score was saved.</string>

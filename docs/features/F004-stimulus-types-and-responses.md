@@ -99,6 +99,11 @@ Replace the generic Match label with one control per active type, always ordered
 Position, Colour, Number. Visible labels are “Position match”,
 “Colour match” and “Number match”. Keep the type label visible after activation;
 add a check mark and a neutral “Recorded” state without revealing correctness.
+Arrange the controls in one horizontally centered row in both orientations, using
+compact rounded square buttons rather than full-width stacked rows. Show the type
+and action on separate lines. Keep equal button sizes, at least 48 dp touch targets,
+and allow taller buttons at enlarged text sizes without changing their row or
+moving the grid when a response is recorded.
 
 - Position-only sessions have one Position match control. A Position + Colour
   session has two; a three-type session has three.

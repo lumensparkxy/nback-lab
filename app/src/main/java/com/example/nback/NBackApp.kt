@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,6 +43,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.Color
 import androidx.activity.compose.LocalActivity
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -47,8 +51,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.nback.engine.StimulusType
 import com.example.nback.engine.SessionScreen
 import com.example.nback.engine.SessionState
@@ -87,13 +93,16 @@ internal fun SessionContent(
     onToggleType: (StimulusType) -> Unit = {}, onTypeMatch: (StimulusType) -> Unit = { onMatch() },
 ) {
     Scaffold(containerColor = Paper) { insets ->
-        Box(Modifier.fillMaxSize().padding(insets).padding(horizontal = 24.dp, vertical = 16.dp)) {
+        BoxWithConstraints(Modifier.fillMaxSize().padding(insets)) {
+            val sidePadding = if (state.screen == SessionScreen.PLAYING && maxWidth < 360.dp) 8.dp else 24.dp
+            Box(Modifier.fillMaxSize().padding(horizontal = sidePadding, vertical = 16.dp)) {
             when (state.screen) {
                 SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType)
                 SessionScreen.PLAYING -> Playing(state, onTypeMatch, onHome)
                 SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
                 SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
                 SessionScreen.PRACTICE_FEEDBACK, SessionScreen.PRACTICE_COMPLETE -> key(state.feedback?.token) { PracticeExplanation(state, onNext, onPractice, onStart, onHome) }
+            }
             }
         }
     }
@@ -126,7 +135,7 @@ private fun Instructions(settings: SettingsState, onSelect: (Int) -> Unit, onSta
 
 @Composable
 private fun Playing(state: SessionState, onMatch: (StimulusType) -> Unit, onHome: () -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(Modifier.fillMaxSize().testTag("playing_area")) {
         val compactResponses = maxWidth > maxHeight || maxHeight < 650.dp
         if (maxWidth > maxHeight) {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -137,9 +146,7 @@ private fun Playing(state: SessionState, onMatch: (StimulusType) -> Unit, onHome
                         if (state.config.practice) SkipButton(onHome, compact = true)
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (type in state.config.types) Column(Modifier.weight(1f)) { TypeResponseControl(state, type, onMatch, compactResponses) }
-                }
+                ResponseControls(state, onMatch, compactResponses)
             }
         } else {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(if (compactResponses) 8.dp else 12.dp)) {
@@ -165,60 +172,38 @@ private fun Progress(state: SessionState, compact: Boolean = false) {
 }
 
 @Composable
-private fun ResponseControls(state: SessionState, onMatch: (StimulusType) -> Unit, compact: Boolean = false) {
-    if (state.config.modeMask == 1 && !compact) {
-        // Reserve the largest status layout so input never moves the grid.
-        val messages = listOf(stringResource(R.string.watch_positions),
-            stringResource(R.string.response_recorded), pluralStringResource(R.plurals.match_prompt, state.config.level, state.config.level))
-        Box {
-            messages.forEach { Text(it, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.alpha(0f).clearAndSetSemantics {}) }
-            Text(messages[when { state.isWarmUp -> 0; state.responseRecorded -> 1; else -> 2 }],
-                style = MaterialTheme.typography.bodyLarge, modifier = Modifier.testTag("response_status"))
+private fun ResponseControls(state: SessionState, onMatch: (StimulusType) -> Unit, compact: Boolean) {
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val gap = if (maxWidth < 300.dp) 4.dp else 8.dp
+        val buttonWidth = 112.dp * LocalDensity.current.fontScale
+        Row(Modifier.widthIn(max = buttonWidth * state.config.types.size + gap * (state.config.types.size - 1))
+            .fillMaxWidth().height(IntrinsicSize.Min).testTag("response_row"),
+            horizontalArrangement = Arrangement.spacedBy(gap)) {
+            for (type in state.config.types) {
+                TypeResponseControl(state, type, onMatch, Modifier.weight(1f).fillMaxHeight(), compact)
+            }
         }
     }
-    for (type in state.config.types) TypeResponseControl(state, type, onMatch, compact)
 }
 
 @Composable
-private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch: (StimulusType) -> Unit, compact: Boolean = false) {
-    if (compact) {
-        val label = stringResource(R.string.type_match, typeLabel(type))
-        val recorded = type in state.recordedTypes
-        val status = stringResource(if (recorded) R.string.type_recorded else if (state.isWarmUp) R.string.watch_warmup else R.string.match_if_same)
-        Button(onClick = { onMatch(type) }, enabled = state.canRespond(type),
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                .testTag(if (type == StimulusType.POSITION) "match" else "match_${type.bit}")
-                .semantics { contentDescription = label; stateDescription = status },
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White,
-                disabledContainerColor = Cell, disabledContentColor = Muted)) {
-            BoxWithConstraints(Modifier.fillMaxWidth().clearAndSetSemantics {}) {
-                if (maxWidth < 220.dp) {
-                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(typeLabel(type), style = MaterialTheme.typography.labelLarge)
-                        CompactResponseStatus(recorded)
-                    }
-                } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text(typeLabel(type), style = MaterialTheme.typography.labelLarge)
-                    CompactResponseStatus(recorded)
-                }
-            }
+private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch: (StimulusType) -> Unit, modifier: Modifier, compact: Boolean) {
+    val label = stringResource(R.string.type_match, typeLabel(type))
+    val recorded = type in state.recordedTypes
+    val status = stringResource(if (recorded) R.string.type_recorded else if (state.isWarmUp) R.string.watch_warmup else R.string.match_if_same)
+    Button(onClick = { onMatch(type) }, enabled = state.canRespond(type),
+        modifier = modifier.heightIn(min = if (compact) 64.dp else 88.dp)
+            .testTag(if (type == StimulusType.POSITION) "match" else "match_${type.bit}")
+            .semantics { contentDescription = label; stateDescription = status },
+        shape = RoundedCornerShape(16.dp),
+        contentPadding = PaddingValues(horizontal = 2.dp, vertical = if (compact) 8.dp else 12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White,
+            disabledContainerColor = Cell, disabledContentColor = Muted)) {
+        Column(Modifier.fillMaxWidth().clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(typeLabel(type), style = MaterialTheme.typography.labelMedium, letterSpacing = 0.sp, textAlign = TextAlign.Center)
+            CompactResponseStatus(recorded)
         }
-        return
-    }
-    Column {
-        if (state.config.modeMask != 1) {
-            val messages = listOf(stringResource(R.string.watch_warmup), stringResource(R.string.type_recorded), stringResource(R.string.match_if_same))
-            Box {
-                messages.forEach { Text(it, style = MaterialTheme.typography.labelMedium, modifier = Modifier.alpha(0f).clearAndSetSemantics {}) }
-                Text(messages[when { state.isWarmUp -> 0; type in state.recordedTypes -> 1; else -> 2 }],
-                    style = MaterialTheme.typography.labelMedium, modifier = Modifier.testTag("status_${type.bit}"))
-            }
-        }
-        val label = stringResource(R.string.type_match, typeLabel(type))
-        ActionButton(label, { onMatch(type) },
-            state.canRespond(type), if (type == StimulusType.POSITION) "match" else "match_${type.bit}")
     }
 }
 
@@ -226,8 +211,8 @@ private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch
 private fun CompactResponseStatus(recorded: Boolean) {
     val messages = listOf(stringResource(R.string.match_action), stringResource(R.string.type_recorded))
     Box {
-        messages.forEach { Text(it, style = MaterialTheme.typography.labelSmall, modifier = Modifier.alpha(0f).clearAndSetSemantics {}) }
-        Text(messages[if (recorded) 1 else 0], style = MaterialTheme.typography.labelSmall)
+        messages.forEach { Text(it, style = MaterialTheme.typography.labelSmall, letterSpacing = 0.sp, textAlign = TextAlign.Center, modifier = Modifier.alpha(0f).clearAndSetSemantics {}) }
+        Text(messages[if (recorded) 1 else 0], style = MaterialTheme.typography.labelSmall, letterSpacing = 0.sp, textAlign = TextAlign.Center)
     }
 }
 
