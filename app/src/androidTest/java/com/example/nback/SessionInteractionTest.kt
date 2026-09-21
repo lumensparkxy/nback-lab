@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.SemanticsProperties
 import com.example.nback.engine.MonotonicClock
 import com.example.nback.engine.SessionScreen
 import com.example.nback.engine.VisualSession
@@ -59,7 +60,10 @@ class SessionInteractionTest {
         compose.onNodeWithTag("match").assertIsNotEnabled()
         at(6_000)
         compose.onNodeWithTag("match").assertIsEnabled().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp).performClick()
-        compose.onNodeWithText("Response recorded").assertIsDisplayed()
+        val response = compose.onNodeWithTag("match").fetchSemanticsNode().config
+        if (response.contains(SemanticsProperties.StateDescription)) {
+            assertEquals("✓ Recorded", response[SemanticsProperties.StateDescription])
+        } else compose.onNodeWithText("✓ Response recorded").assertIsDisplayed()
         compose.onNodeWithTag("match").assertIsNotEnabled().performTouchInput { click() }
         at(9_000); compose.onNodeWithTag("match").assertIsEnabled()
         compose.onNodeWithContentDescription("Visual position grid").assertIsDisplayed()

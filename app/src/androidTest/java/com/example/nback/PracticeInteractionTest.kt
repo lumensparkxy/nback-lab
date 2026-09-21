@@ -43,7 +43,7 @@ class PracticeInteractionTest {
         compose.runOnIdle { settings.value = SettingsState(loading = false) }
         for (n in 1..3) {
             compose.onNodeWithTag("level_$n").performScrollTo().assertHeightIsAtLeast(48.dp).performClick().assertIsSelected()
-            compose.onNodeWithText("POSITION · $n-BACK").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Position · $n-back").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("$n warm-up ${if (n==1) "turn" else "turns"} · 20 scored turns · ${(n+20)*3} seconds", substring=true).performScrollTo().assertIsDisplayed()
         }
         compose.runOnIdle { settings.value = settings.value.copy(notice = SettingsNotice.SAVE_FAILED) }
@@ -59,8 +59,8 @@ class PracticeInteractionTest {
             if (step < 2) compose.onNodeWithTag("match").performClick()
             compose.onNodeWithTag("feedback_answer").assertDoesNotExist()
             at(start + 3_000)
-            compose.onNodeWithText(if (step % 2 == 0) "The positions matched." else "The positions were different.").performScrollTo().assertIsDisplayed()
-            compose.onNodeWithText(if (step < 2) "You tapped Match." else "You waited.").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText(if (step % 2 == 0) "Position matched." else "Position differed.").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText(if (step < 2) "You tapped Position match." else "You waited.").performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("accuracy").assertDoesNotExist()
             if (step < 3) {
                 at(time + 90_000)

@@ -17,6 +17,12 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.selected
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -39,11 +45,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.example.nback.engine.SessionResult
+import com.example.nback.engine.StimulusType
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -68,16 +77,23 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
     }
 }
 
-@Composable internal fun ResultSummary(result: SessionResult, level: Int, completedAt: Long?, time: HistoryTime) {
-    Text(stringResource(R.string.session_eyebrow, level))
+@Composable internal fun ResultSummary(result: SessionResult, level: Int, completedAt: Long?, time: HistoryTime) =
+    MultiResultSummary(mapOf(StimulusType.POSITION to result), level, completedAt, time)
+
+@Composable internal fun MultiResultSummary(results: Map<StimulusType, SessionResult>, level: Int, completedAt: Long?, time: HistoryTime) {
+    Text(modeTitle(results.keys.sumOf { it.bit }, level))
     completedAt?.let { Text(time.format(it, detail = true), Modifier.testTag("completed_at")) }
-    Text(stringResource(R.string.accuracy, result.accuracy), style = MaterialTheme.typography.displayMedium,
-        fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag("accuracy"))
-    Text(stringResource(R.string.correct, result.correct), style = MaterialTheme.typography.titleLarge)
-    ResultOutcome(stringResource(R.string.hits_denominator, result.hits), stringResource(R.string.hits_detail))
-    ResultOutcome(stringResource(R.string.outcome_count, stringResource(R.string.misses), result.misses), stringResource(R.string.misses_detail))
-    ResultOutcome(stringResource(R.string.false_alarms_denominator, result.falseAlarms), stringResource(R.string.false_alarms_detail))
-    ResultOutcome(stringResource(R.string.outcome_count, stringResource(R.string.correct_rejections), result.correctRejections), stringResource(R.string.correct_rejections_detail))
+    for ((type, result) in results) {
+        val label = typeLabel(type)
+        Text(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.accuracy, result.accuracy), style = MaterialTheme.typography.displayMedium,
+            fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag(if (type == StimulusType.POSITION) "accuracy" else "accuracy_${type.bit}"))
+        Text(stringResource(R.string.correct, result.correct), style = MaterialTheme.typography.titleLarge)
+        ResultOutcome(stringResource(R.string.hits_denominator, result.hits), stringResource(R.string.type_hits_detail, label))
+        ResultOutcome(stringResource(R.string.outcome_count, stringResource(R.string.misses), result.misses), stringResource(R.string.type_misses_detail, label))
+        ResultOutcome(stringResource(R.string.false_alarms_denominator, result.falseAlarms), stringResource(R.string.type_false_detail, label))
+        ResultOutcome(stringResource(R.string.outcome_count, stringResource(R.string.correct_rejections), result.correctRejections), stringResource(R.string.type_rejections_detail, label))
+    }
     Text(stringResource(R.string.results_baseline), style = MaterialTheme.typography.bodyMedium)
 }
 
@@ -115,6 +131,7 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
 }
 
 @Composable internal fun HistoryScreen(session: SessionViewModel, time: HistoryTime) {
+    val landscape = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val navigation = session.historyNavigation
     val history = session.history.state
     Scaffold { insets ->
@@ -128,26 +145,28 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                     HistoryLoad.READY -> {
                         val record = history.records.find { it.id == navigation.detailId }
                         if (record == null) StatusText(stringResource(R.string.history_missing))
-                        else ResultSummary(record.result(), record.level, record.completedAt, time)
+                        else MultiResultSummary(record.results(), record.level, record.completedAt, time)
                     }
                 }
                 BackButton(session::back)
                 HomeButton(session::home)
             }
-        } else key(navigation.filter) {
+        } else key(navigation.filter, navigation.modeFilter) {
             val scroll = rememberLazyListState(navigation.scrollIndex, navigation.scrollOffset)
             LaunchedEffect(scroll) {
                 snapshotFlow { scroll.firstVisibleItemIndex to scroll.firstVisibleItemScrollOffset }.collect { (index, offset) ->
                     session.rememberHistoryScroll(index, offset)
                 }
             }
-            val rows = remember(history.records, navigation.filter) {
-                history.records.filter { navigation.filter == 0 || it.level == navigation.filter }
+            val rows = remember(history.records, navigation.filter, navigation.modeFilter) {
+                history.records.filter { (navigation.filter == 0 || it.level == navigation.filter) &&
+                    (navigation.modeFilter == 0 || it.modeMask == navigation.modeFilter) }
             }
             LazyColumn(modifier.testTag("history_list"), state = scroll, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 item(key = "heading") { PageTitle(stringResource(R.string.history)) }
                 item(key = "comparison") { Text(stringResource(R.string.history_comparison)) }
                 item(key = "filters") { HistoryFilters(navigation.filter, session::filterHistory) }
+                item(key = "modes") { ModeFilter(navigation.modeFilter, session::filterHistoryMode) }
                 item(key = "unsaved") { UnsavedSummary(history) { session.history.retry() } }
                 item(key = "actions") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -167,7 +186,8 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                     HistoryLoad.FAILED -> item(key = "error") { LoadFailure(session.history::reload) }
                     HistoryLoad.READY -> {
                         if (rows.isEmpty()) item(key = "empty") {
-                            Text(if (navigation.filter == 0) stringResource(R.string.history_empty)
+                            Text(if (navigation.modeFilter != 0) stringResource(R.string.empty_mode)
+                                else if (navigation.filter == 0) stringResource(R.string.history_empty)
                                 else stringResource(R.string.history_empty_level, navigation.filter))
                         }
                         items(rows, key = { "session:${it.id}" }, contentType = { "result" }) { record ->
@@ -175,8 +195,10 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("record_${record.id}")) {
                                 Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(time.format(record.completedAt))
-                                    Text(stringResource(R.string.session_eyebrow, record.level))
-                                    Text(stringResource(R.string.accuracy, record.result().accuracy), fontWeight = FontWeight.SemiBold)
+                                    Text(modeTitle(record.modeMask, record.level))
+                                    record.results().forEach { (type, result) ->
+                                        Text(stringResource(R.string.type_accuracy, typeLabel(type), result.accuracy), fontWeight = FontWeight.SemiBold)
+                                    }
                                 }
                             }
                         }
@@ -187,8 +209,16 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
     }
     if (navigation.confirmClear) AlertDialog(
         onDismissRequest = session::cancelClear,
-        title = { Text(stringResource(R.string.clear_title)) },
-        text = { Text(stringResource(R.string.clear_body), Modifier.verticalScroll(rememberScrollState()).testTag("clear_explanation")) },
+        properties = DialogProperties(usePlatformDefaultWidth = !landscape),
+        modifier = if (landscape) Modifier.fillMaxWidth().padding(horizontal = 24.dp) else Modifier,
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()).testTag("clear_explanation"),
+                verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(stringResource(R.string.clear_title), style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.semantics { heading() })
+                Text(stringResource(R.string.clear_body))
+            }
+        },
         confirmButton = { TextButton(onClick = session::confirmClear, enabled = history.canClear,
             modifier = Modifier.heightIn(min = 48.dp).testTag("confirm_clear")) { Text(stringResource(R.string.clear_confirm)) } },
         dismissButton = { TextButton(onClick = session::cancelClear,
@@ -221,4 +251,21 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
 
 @Composable private fun BackButton(back: () -> Unit) {
     ActionButton(stringResource(R.string.back), back, tag = "history_back")
+}
+
+@Composable private fun ModeFilter(selected: Int, select: (Int) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        Text(stringResource(R.string.mode_filters), fontWeight = FontWeight.SemiBold)
+        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("mode_filter_menu")) {
+            Text(if (selected == 0) stringResource(R.string.all_levels) else modeLabel(selected))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            for (mask in 0..7) DropdownMenuItem(
+                text = { Text(if (mask == 0) stringResource(R.string.all_levels) else modeLabel(mask)) },
+                onClick = { expanded = false; select(mask) },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("mode_filter_$mask").semantics { this.selected = selected == mask },
+            )
+        }
+    }
 }

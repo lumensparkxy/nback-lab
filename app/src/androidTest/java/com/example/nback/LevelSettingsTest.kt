@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModelStore
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.nback.engine.StimulusType
 import com.example.nback.engine.MonotonicClock
 import com.example.nback.engine.SessionScreen
 import com.example.nback.engine.VisualSession
@@ -45,12 +46,13 @@ class LevelSettingsTest {
     }
     private class PendingSettings : LevelSettings {
         val load = CompletableDeferred<LoadedLevel>()
-        data class Write(val level: Int, val done: CompletableDeferred<Unit> = CompletableDeferred())
+        data class Write(val level: Int, val modeMask: Int, val done: CompletableDeferred<Unit> = CompletableDeferred())
         val writes = Channel<Write>(Channel.UNLIMITED)
         var stored: Int? = null
+        var storedMask: Int? = null
         override suspend fun load() = load.await()
-        override suspend fun save(level: Int) {
-            val write = Write(level); writes.send(write); write.done.await(); stored = level
+        override suspend fun save(level: Int, modeMask: Int) {
+            val write = Write(level, modeMask); writes.send(write); write.done.await(); stored = level; storedMask = modeMask
         }
         suspend fun next(): Write = withTimeout(5_000) { writes.receive() }
     }
@@ -128,6 +130,47 @@ class LevelSettingsTest {
         } finally { main { holder.clear() } }
     }
 
+    @Test fun modeAndLevelWritesAreOrderedRetryableAndFrozenDuringSession() = runBlocking {
+        val prefs = PendingSettings(); val holder = ViewModelStore()
+        val model = main { SessionViewModel(prefs, testHistory(historyScope)).also { holder.put("test", it) } }
+        try {
+            prefs.load.complete(LoadedLevel(3)); await { !model.settings.loading }
+            main { model.toggleType(StimulusType.COLOUR) }
+            val first = prefs.next(); assertEquals(3, first.level); assertEquals(3, first.modeMask)
+            main { model.selectLevel(1); model.toggleType(StimulusType.NUMBER); model.start() }
+            assertEquals(7, main { model.state.config.modeMask }); assertEquals(1, main { model.state.config.level })
+            main { model.toggleType(StimulusType.POSITION) }; assertEquals(7, main { model.settings.modeMask })
+            first.done.completeExceptionally(IOException("old failure"))
+            val second = prefs.next(); assertEquals(1, second.level); assertEquals(3, second.modeMask)
+            assertNull(main { model.settings.notice }); second.done.complete(Unit)
+            val latest = prefs.next(); assertEquals(1, latest.level); assertEquals(7, latest.modeMask)
+            latest.done.completeExceptionally(IOException("latest failure")); await { model.settings.notice == SettingsNotice.SAVE_FAILED }
+            main { model.interrupt(); model.start() }
+            assertEquals(7, main { model.state.config.modeMask }); assertEquals(1, main { model.state.config.level })
+            main { model.home(); model.retrySave() }
+            val retry = prefs.next(); assertEquals(7, retry.modeMask)
+            main { model.toggleType(StimulusType.POSITION) }; retry.done.complete(Unit)
+            val final = prefs.next(); assertEquals(1, final.level); assertEquals(6, final.modeMask)
+            assertTrue(main { model.settings.saving }); final.done.complete(Unit); await { !model.settings.saving }
+            assertEquals(6, prefs.storedMask); assertEquals(1, prefs.stored)
+        } finally { main { holder.clear() } }
+    }
+
+    @Test fun invalidModeRepairRetainsValidLevelAndCannotOverwriteNewTypes() = runBlocking {
+        val prefs = PendingSettings(); val holder = ViewModelStore()
+        val model = main { SessionViewModel(prefs, testHistory(historyScope)).also { holder.put("test", it) } }
+        try {
+            prefs.load.complete(LoadedLevel(3, modeMask = 99)); await { !model.settings.loading }
+            assertEquals(SettingsNotice.TYPES_RESET, main { model.settings.notice })
+            val repair = prefs.next(); assertEquals(3, repair.level); assertEquals(1, repair.modeMask)
+            main { model.toggleType(StimulusType.COLOUR); model.practice() }
+            assertEquals(3, main { model.state.config.modeMask }); assertEquals(3, main { model.state.config.level })
+            repair.done.complete(Unit)
+            val selection = prefs.next(); assertEquals(3, selection.modeMask)
+            selection.done.complete(Unit); await { !model.settings.saving }; assertEquals(3, prefs.storedMask)
+        } finally { main { holder.clear() } }
+    }
+
     @Test fun dataStoreRoundTripsMissingInvalidTypesRangesAndCorruption() = runBlocking {
         val cache = InstrumentationRegistry.getInstrumentation().targetContext.cacheDir
         val dir = File(cache, "settings-test-${System.nanoTime()}").apply { mkdirs() }
@@ -151,7 +194,7 @@ class LevelSettingsTest {
             val recovered = PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + job),
                 corruptionHandler = ReplaceFileCorruptionHandler { corrupted.set(true); emptyPreferences() }, produceFile = { file })
             val repaired = StoredLevelSettings(recovered) { corrupted.getAndSet(false) }
-            assertEquals(LoadedLevel(2, true), repaired.load())
+            assertEquals(LoadedLevel(2, true, typesReset = true), repaired.load())
             repaired.save(2); assertEquals(LoadedLevel(), repaired.load())
         } finally { job.cancelAndJoin(); dir.deleteRecursively() }
     }

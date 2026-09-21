@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nback.engine.StimulusType
+import com.example.nback.engine.SessionResult
 import com.example.nback.engine.MonotonicClock
 import com.example.nback.engine.SessionScreen
 import com.example.nback.engine.VisualSession
@@ -23,7 +25,7 @@ import java.util.UUID
 class SessionViewModel(
     private val preferences: LevelSettings,
     val history: HistoryCoordinator,
-    private val game: VisualSession = VisualSession(MonotonicClock { SystemClock.elapsedRealtime() }) { n -> generateSequence(Random.Default, n) },
+    private val game: VisualSession = VisualSession.withTypes(MonotonicClock { SystemClock.elapsedRealtime() }) { type, n -> generateSequence(Random.Default, n, type.cardinality) },
     private val wallClock: () -> Long = System::currentTimeMillis,
     private val newId: () -> String = { UUID.randomUUID().toString() },
 ) : ViewModel() {
@@ -42,7 +44,7 @@ class SessionViewModel(
     private val handler = Handler(Looper.getMainLooper())
     private var resumed = false
     private val tick = Runnable { refresh() }
-    private data class Save(val version: Long, val level: Int)
+    private data class Save(val version: Long, val level: Int, val modeMask: Int)
     private val saves = Channel<Save>(Channel.UNLIMITED)
     private var version = 0L
 
@@ -50,7 +52,7 @@ class SessionViewModel(
         viewModelScope.launch {
             for (save in saves) {
                 try {
-                    preferences.save(save.level)
+                    preferences.save(save.level, save.modeMask)
                     if (save.version == version) settings = settings.copy(saving = false)
                 } catch (e: IOException) {
                     if (save.version == version) settings = settings.copy(saving = false, notice = SettingsNotice.SAVE_FAILED)
@@ -61,9 +63,18 @@ class SessionViewModel(
             try {
                 val loaded = preferences.load()
                 val valid = loaded.level in 1..3
+                val validTypes = loaded.modeMask in 1..7
+                val resetLevel = loaded.reset || !valid
+                val resetTypes = loaded.typesReset || !validTypes
                 settings = SettingsState(level = if (valid) loaded.level else 2, loading = false,
-                    notice = if (loaded.reset || !valid) SettingsNotice.RESET else null)
-                if (loaded.reset || !valid) queueSave()
+                    modeMask = if (validTypes) loaded.modeMask else 1,
+                    notice = when {
+                        resetLevel && resetTypes -> SettingsNotice.BOTH_RESET
+                        resetLevel -> SettingsNotice.RESET
+                        resetTypes -> SettingsNotice.TYPES_RESET
+                        else -> null
+                    })
+                if (resetLevel || resetTypes) queueSave()
             } catch (e: IOException) {
                 settings = SettingsState(loading = false, notice = SettingsNotice.LOAD_FAILED)
             }
@@ -76,9 +87,16 @@ class SessionViewModel(
         settings = settings.copy(level = level, notice = null)
         queueSave()
     }
+    fun toggleType(type: StimulusType) {
+        if (settings.loading || state.screen != SessionScreen.HOME || historyNavigation.open) return
+        val mask = settings.modeMask xor type.bit
+        if (mask == 0) return
+        settings = settings.copy(modeMask = mask, notice = null)
+        queueSave()
+    }
     private fun queueSave() {
         settings = settings.copy(saving = true)
-        check(saves.trySend(Save(++version, settings.level)).isSuccess)
+        check(saves.trySend(Save(++version, settings.level, settings.modeMask)).isSuccess)
     }
     fun retrySave() {
         if (!settings.loading && state.screen == SessionScreen.HOME && !historyNavigation.open) {
@@ -93,7 +111,7 @@ class SessionViewModel(
         captureCompletion()
         val level = if (state.screen == SessionScreen.HOME) settings.level else state.config.level
         val practice = state.screen == SessionScreen.INTERRUPTED && state.config.practice
-        game.start(level, practice)
+        game.start(level, practice, if (state.screen == SessionScreen.HOME) settings.modeMask else state.config.modeMask)
         runId = if (practice) null else newId()
         resultId = null
         refresh()
@@ -101,11 +119,12 @@ class SessionViewModel(
     fun practice() {
         if (settings.loading || historyNavigation.open || game.state.isActive) return
         captureCompletion()
-        game.start(if (state.screen == SessionScreen.HOME) settings.level else state.config.level, practice = true)
+        game.start(if (state.screen == SessionScreen.HOME) settings.level else state.config.level, practice = true,
+            modeMask = if (state.screen == SessionScreen.HOME) settings.modeMask else state.config.modeMask)
         runId = null; resultId = null
         refresh()
     }
-    fun match() { if (resumed && !historyNavigation.open) { game.match(); refresh() } }
+    fun match(type: StimulusType = StimulusType.POSITION) { if (resumed && !historyNavigation.open) { game.match(type); refresh() } }
     fun nextExample(token: Long) { if (resumed) { game.nextExample(token); refresh() } }
     fun interrupt() { game.interrupt(); refresh() }
     fun back() {
@@ -132,9 +151,14 @@ class SessionViewModel(
         val current = game.state
         val id = runId ?: return
         if (current.screen != SessionScreen.RESULTS || current.config.practice || resultId == id) return
-        val result = requireNotNull(current.result)
+        val result = current.results[StimulusType.POSITION] ?: SessionResult()
+        val colour = current.results[StimulusType.COLOUR] ?: SessionResult()
+        val number = current.results[StimulusType.NUMBER] ?: SessionResult()
         val record = HistoryRecord(id, wallClock(), current.config.level, hits = result.hits,
-            misses = result.misses, falseAlarms = result.falseAlarms, correctRejections = result.correctRejections)
+            misses = result.misses, falseAlarms = result.falseAlarms, correctRejections = result.correctRejections,
+            rulesVersion = 2, modeMask = current.config.modeMask,
+            colourHits = colour.hits, colourMisses = colour.misses, colourFalseAlarms = colour.falseAlarms, colourCorrectRejections = colour.correctRejections,
+            numberHits = number.hits, numberMisses = number.misses, numberFalseAlarms = number.falseAlarms, numberCorrectRejections = number.correctRejections)
         history.capture(record)
         resultId = id
     }
@@ -145,6 +169,10 @@ class SessionViewModel(
     fun filterHistory(level: Int) {
         require(level in 0..3)
         historyNavigation = historyNavigation.copy(filter = level, scrollIndex = 0, scrollOffset = 0)
+    }
+    fun filterHistoryMode(modeMask: Int) {
+        require(modeMask in 0..7)
+        historyNavigation = historyNavigation.copy(modeFilter = modeMask, scrollIndex = 0, scrollOffset = 0)
     }
     fun rememberHistoryScroll(index: Int, offset: Int) {
         historyNavigation = historyNavigation.copy(scrollIndex = index, scrollOffset = offset)
@@ -164,5 +192,5 @@ class SessionViewModel(
 /** Retained by ViewModel, deliberately absent from saved-instance-state/process restoration. */
 data class HistoryNavigation(
     val open: Boolean = false, val detailId: String? = null, val filter: Int = 0,
-    val scrollIndex: Int = 0, val scrollOffset: Int = 0, val confirmClear: Boolean = false,
+    val modeFilter: Int = 0, val scrollIndex: Int = 0, val scrollOffset: Int = 0, val confirmClear: Boolean = false,
 )

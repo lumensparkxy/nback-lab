@@ -11,23 +11,33 @@ object SessionRules {
     const val HIGHLIGHT_MS = 1_000L
 }
 
-data class SessionConfig(val level: Int = 2, val practice: Boolean = false) {
-    init { require(level in 1..3) }
+enum class StimulusType(val bit: Int, val cardinality: Int) {
+    POSITION(1, 9), COLOUR(2, 6), NUMBER(4, 9),
+}
+fun activeTypes(modeMask: Int): List<StimulusType> {
+    require(modeMask in 1..7)
+    return StimulusType.entries.filter { modeMask and it.bit != 0 }
+}
+
+data class SessionConfig(val level: Int = 2, val practice: Boolean = false, val modeMask: Int = 1) {
+    init { require(level in 1..3); require(modeMask in 1..7) }
+    val types: List<StimulusType> get() = activeTypes(modeMask)
     val scoredTrials: Int get() = if (practice) 4 else SessionRules.SCORED_TRIALS
     val totalTrials: Int get() = level + scoredTrials
     val durationMillis: Long get() = totalTrials * SessionRules.TRIAL_MS
 }
 
 /** Cells are 0..8. Exactly six uniformly sampled scored indices are matches. */
-fun generateSequence(random: Random, level: Int = 2): List<Int> {
+fun generateSequence(random: Random, level: Int = 2, cardinality: Int = 9): List<Int> {
+    require(cardinality >= 2)
     val config = SessionConfig(level)
     val matches = (level until config.totalTrials).shuffled(random).take(SessionRules.MATCHES).toSet()
     val cells = mutableListOf<Int>()
     repeat(config.totalTrials) { trial ->
         cells += when {
-            trial < level -> random.nextInt(9)
+            trial < level -> random.nextInt(cardinality)
             trial in matches -> cells[trial - level]
-            else -> random.nextInt(8).let { if (it >= cells[trial - level]) it + 1 else it }
+            else -> random.nextInt(cardinality - 1).let { if (it >= cells[trial - level]) it + 1 else it }
         }
     }
     return cells.toList()
@@ -60,54 +70,96 @@ data class SessionResult(val hits: Int = 0, val misses: Int = 0, val falseAlarms
     }
 }
 
-data class PracticeFeedback(val token: Long, val currentCell: Int, val referenceCell: Int, val responded: Boolean) {
-    val matches: Boolean get() = currentCell == referenceCell
+data class TypeFeedback(val current: Int, val reference: Int, val responded: Boolean) {
+    val matches: Boolean get() = current == reference
     val outcome: Outcome get() = classify(matches, responded)
+}
+data class PracticeFeedback(val token: Long, val types: Map<StimulusType, TypeFeedback>) {
+    // Position-only compatibility for the original contract fixtures.
+    val currentCell: Int get() = types.getValue(StimulusType.POSITION).current
+    val referenceCell: Int get() = types.getValue(StimulusType.POSITION).reference
+    val responded: Boolean get() = types.getValue(StimulusType.POSITION).responded
+    val matches: Boolean get() = types.getValue(StimulusType.POSITION).matches
+    val outcome: Outcome get() = types.getValue(StimulusType.POSITION).outcome
 }
 
 data class SessionState(
     val screen: SessionScreen = SessionScreen.HOME,
     val trial: Int = 0,
-    val highlightedCell: Int? = null,
-    val responseRecorded: Boolean = false,
-    val result: SessionResult? = null,
+    val stimulus: Map<StimulusType, Int> = emptyMap(),
+    val recordedTypes: Set<StimulusType> = emptySet(),
+    val results: Map<StimulusType, SessionResult> = emptyMap(),
     val config: SessionConfig = SessionConfig(),
     val feedback: PracticeFeedback? = null,
 ) {
+    val highlightedCell: Int? get() = stimulus[StimulusType.POSITION]
+    val responseRecorded: Boolean get() = StimulusType.POSITION in recordedTypes
+    val result: SessionResult? get() = results[StimulusType.POSITION]
     val isWarmUp: Boolean get() = trial <= config.level
     val progress: Int get() = if (isWarmUp) trial else trial - config.level
-    val canRespond: Boolean get() = screen == SessionScreen.PLAYING && !isWarmUp && !responseRecorded
+    val canRespond: Boolean get() = canRespond(StimulusType.POSITION)
+    fun canRespond(type: StimulusType): Boolean = screen == SessionScreen.PLAYING && !isWarmUp &&
+        type in config.types && type !in recordedTypes
     val isActive: Boolean get() = screen == SessionScreen.PLAYING || screen == SessionScreen.PRACTICE_FEEDBACK
 }
 
+fun practiceSequences(config: SessionConfig): Map<StimulusType, List<Int>> = config.types.associateWith { type ->
+    if (config.modeMask == 1) practiceSequence(config.level) else {
+        val values = MutableList(config.level) { it % type.cardinality }
+        repeat(4) { step ->
+            val rank = config.types.indexOf(type)
+            val target = if (config.types.size == 1) step % 2 == 0 else when (step) {
+                0 -> false
+                1 -> rank == 0
+                2 -> true
+                else -> if (config.types.size == 2) rank == 1 else rank < 2
+            }
+            val reference = values[step]
+            values += if (target) reference else (reference + 1) % type.cardinality
+        }
+        values.toList()
+    }
+}
+
 /** Single-thread confined; clock, sequences and all gameplay rules are Android-free. */
-class VisualSession(private val clock: MonotonicClock, private val sequenceFactory: (Int) -> List<Int>) {
+class VisualSession private constructor(
+    private val clock: MonotonicClock,
+    private val sequenceFactory: (StimulusType, Int) -> List<Int>,
+) {
+    constructor(clock: MonotonicClock, sequenceFactory: (Int) -> List<Int>) : this(clock,
+        { type, n -> if (type == StimulusType.POSITION) sequenceFactory(n) else generateSequence(Random.Default, n, type.cardinality) })
+    companion object {
+        fun withTypes(clock: MonotonicClock, factory: (StimulusType, Int) -> List<Int>) = VisualSession(clock, factory)
+    }
     var state = SessionState()
         private set
-    private var positions = emptyList<Int>()
-    private var responses = BooleanArray(0)
+    private var streams = emptyMap<StimulusType, List<Int>>()
+    private var responses = emptyMap<StimulusType, BooleanArray>()
     private var origin = 0L
     private var elapsed = 0L
     private var nextToScore = 0
-    private var counts = SessionResult()
+    private var counts = emptyMap<StimulusType, SessionResult>()
     private var practiceIndex = 0
     // Never reset across runs: old Next callbacks cannot affect a restarted practice.
     private var feedbackToken = 0L
 
-    fun start(level: Int = 2, practice: Boolean = false) {
-        val config = SessionConfig(level, practice)
+    fun start(level: Int = 2, practice: Boolean = false, modeMask: Int = 1) {
+        val config = SessionConfig(level, practice, modeMask)
         if (state.isActive) return
-        val sequence = (if (practice) practiceSequence(level) else sequenceFactory(level)).toList()
-        require(sequence.size == config.totalTrials && sequence.all { it in 0..8 })
-        if (!practice) require((level until sequence.size).count { sequence[it] == sequence[it - level] } == SessionRules.MATCHES)
-        positions = sequence
-        responses = BooleanArray(sequence.size)
+        val sequences = if (practice) practiceSequences(config) else config.types.associateWith { sequenceFactory(it, level).toList() }
+        sequences.forEach { (type, sequence) ->
+            require(sequence.size == config.totalTrials && sequence.all { it in 0 until type.cardinality })
+            if (!practice) require((level until sequence.size).count { sequence[it] == sequence[it - level] } == SessionRules.MATCHES)
+        }
+        streams = sequences
+        responses = config.types.associateWith { BooleanArray(config.totalTrials) }
         nextToScore = level
-        counts = SessionResult()
+        counts = config.types.associateWith { SessionResult() }
         practiceIndex = 0
         origin = clock.nowMillis()
         elapsed = 0
-        state = SessionState(SessionScreen.PLAYING, trial = 1, highlightedCell = sequence[0], config = config)
+        state = SessionState(SessionScreen.PLAYING, config = config)
+        renderTrial(0)
     }
 
     fun advance() {
@@ -120,11 +172,14 @@ class VisualSession(private val clock: MonotonicClock, private val sequenceFacto
         val config = state.config
         val closed = (elapsed / SessionRules.TRIAL_MS).coerceAtMost(config.totalTrials.toLong()).toInt()
         while (nextToScore < closed) {
-            counts = counts.record(classify(positions[nextToScore] == positions[nextToScore - config.level], responses[nextToScore]))
+            counts = counts.mapValues { (type, result) ->
+                val values = streams.getValue(type)
+                result.record(classify(values[nextToScore] == values[nextToScore - config.level], responses.getValue(type)[nextToScore]))
+            }
             nextToScore++
         }
         if (elapsed >= config.durationMillis) {
-            state = SessionState(SessionScreen.RESULTS, result = counts, config = config)
+            state = SessionState(SessionScreen.RESULTS, results = counts, config = config)
         } else renderTrial(closed)
     }
 
@@ -133,23 +188,27 @@ class VisualSession(private val clock: MonotonicClock, private val sequenceFacto
         val index = if (practiceIndex == 0) (elapsed / SessionRules.TRIAL_MS).coerceAtMost(config.level.toLong()).toInt() else practiceIndex
         val deadline = if (practiceIndex == 0) (config.level + 1) * SessionRules.TRIAL_MS else SessionRules.TRIAL_MS
         if (elapsed >= deadline) {
-            val feedback = PracticeFeedback(++feedbackToken, positions[index], positions[index - config.level], responses[index])
-            state = state.copy(screen = if (index == positions.lastIndex) SessionScreen.PRACTICE_COMPLETE else SessionScreen.PRACTICE_FEEDBACK,
-                trial = index + 1, highlightedCell = null, responseRecorded = responses[index], feedback = feedback)
+            val feedback = PracticeFeedback(++feedbackToken, config.types.associateWith { type ->
+                TypeFeedback(streams.getValue(type)[index], streams.getValue(type)[index - config.level], responses.getValue(type)[index])
+            })
+            state = state.copy(screen = if (index == config.totalTrials - 1) SessionScreen.PRACTICE_COMPLETE else SessionScreen.PRACTICE_FEEDBACK,
+                trial = index + 1, stimulus = emptyMap(), recordedTypes = recordedAt(index), feedback = feedback)
         } else renderTrial(index)
     }
 
     private fun renderTrial(index: Int) {
         state = state.copy(trial = index + 1,
-            highlightedCell = positions[index].takeIf { elapsed % SessionRules.TRIAL_MS < SessionRules.HIGHLIGHT_MS },
-            responseRecorded = responses[index], feedback = null)
+            stimulus = if (elapsed % SessionRules.TRIAL_MS < SessionRules.HIGHLIGHT_MS) streams.mapValues { it.value[index] } else emptyMap(),
+            recordedTypes = recordedAt(index), feedback = null)
     }
 
-    fun match() {
+    private fun recordedAt(index: Int) = responses.filterValues { it[index] }.keys.toSet()
+
+    fun match(type: StimulusType = StimulusType.POSITION) {
         advance()
-        if (!state.canRespond) return
-        responses[state.trial - 1] = true
-        state = state.copy(responseRecorded = true)
+        if (!state.canRespond(type)) return
+        responses.getValue(type)[state.trial - 1] = true
+        state = state.copy(recordedTypes = recordedAt(state.trial - 1))
     }
 
     fun nextExample(token: Long) {
@@ -158,22 +217,22 @@ class VisualSession(private val clock: MonotonicClock, private val sequenceFacto
         origin = clock.nowMillis()
         elapsed = 0
         state = state.copy(screen = SessionScreen.PLAYING, trial = practiceIndex + 1,
-            highlightedCell = positions[practiceIndex], responseRecorded = false, feedback = null)
+            stimulus = streams.mapValues { it.value[practiceIndex] }, recordedTypes = emptySet(), feedback = null)
     }
 
     fun interrupt() {
         advance()
         if (state.isActive) {
             state = SessionState(SessionScreen.INTERRUPTED, config = state.config)
-            positions = emptyList()
-            responses.fill(false)
+            streams = emptyMap()
+            responses = emptyMap()
         }
     }
 
     fun home() {
         state = SessionState()
-        positions = emptyList()
-        responses.fill(false)
+        streams = emptyMap()
+        responses = emptyMap()
     }
 
     /** Scheduling only wakes the engine; elapsed time always comes from the clock. */

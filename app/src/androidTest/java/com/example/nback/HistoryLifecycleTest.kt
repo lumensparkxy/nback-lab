@@ -14,6 +14,16 @@ class HistoryLifecycleTest {
         val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
         fun shell(command: String): String = android.os.ParcelFileDescriptor.AutoCloseInputStream(
             automation.executeShellCommand(command)).bufferedReader().use { it.readText().trim() }
+        fun capture(name: String) {
+            val context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+            val directory = java.io.File(context.getExternalFilesDir(null), "f004-qa").apply { mkdirs() }
+            automation.takeScreenshot().let { bitmap ->
+                java.io.File(directory, "$name.png").outputStream().use {
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+                }
+                bitmap.recycle()
+            }
+        }
         val originalScale = shell("settings --user current get system font_scale")
         try {
             val model = compose.activity.session
@@ -28,10 +38,29 @@ class HistoryLifecycleTest {
             }
             compose.runOnIdle { model.askClear() }
             compose.onNodeWithTag("confirm_clear").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-            compose.onNodeWithTag("clear_explanation").performTouchInput { swipeUp() }
-            val range = compose.onNodeWithTag("clear_explanation").fetchSemanticsNode().config[
+            compose.onNodeWithTag("clear_explanation").assertHeightIsAtLeast(96.dp)
+            capture("history-clear-before-scroll")
+            val explanation = compose.onNodeWithTag("clear_explanation")
+            val range = explanation.fetchSemanticsNode().config[
                 androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange]
-            assertTrue("Full explanation must be scrollable at 200% in landscape", range.value() > 0f)
+            if (range.maxValue() > 0f) {
+                explanation.performTouchInput { swipeUp() }
+                compose.waitUntil { range.value() > 0f }
+                explanation.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) {
+                    it(0f, range.maxValue())
+                }
+            }
+            val bodyText = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext.getString(R.string.clear_body)
+            val body = compose.onNodeWithText(bodyText)
+            val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+            body.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
+            val layout = layouts.single()
+            val bodyY = body.fetchSemanticsNode().positionInRoot.y
+            val viewport = explanation.fetchSemanticsNode().boundsInRoot
+            assertTrue("The final line must be reachable, whether content fits or scrolls",
+                bodyY + layout.getLineTop(layout.lineCount - 1) >= viewport.top - 1 &&
+                    bodyY + layout.getLineBottom(layout.lineCount - 1) <= viewport.bottom + 1)
+            capture("history-clear-after-scroll")
             compose.onNodeWithTag("cancel_clear").performClick()
         } finally {
             if (originalScale == "null") shell("settings --user current delete system font_scale")
@@ -50,7 +79,8 @@ class HistoryLifecycleTest {
         compose.onNodeWithTag("filter_2").performScrollTo().performClick()
         compose.activityRule.scenario.recreate()
         compose.onNodeWithTag("filter_2").assertIsSelected()
-        compose.onNodeWithTag("record_${record.id}").performScrollTo().performClick()
+        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("record_${record.id}"))
+        compose.onNodeWithTag("record_${record.id}").performClick()
         compose.activityRule.scenario.recreate()
         compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
         compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
