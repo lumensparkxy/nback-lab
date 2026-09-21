@@ -45,6 +45,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -206,8 +207,14 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
     }
     if (navigation.confirmClear) AlertDialog(
         onDismissRequest = session::cancelClear,
-        title = { Text(stringResource(R.string.clear_title)) },
-        text = { Text(stringResource(R.string.clear_body), Modifier.verticalScroll(rememberScrollState()).testTag("clear_explanation")) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()).testTag("clear_explanation"),
+                verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(stringResource(R.string.clear_title), style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.semantics { heading() })
+                Text(stringResource(R.string.clear_body))
+            }
+        },
         confirmButton = { TextButton(onClick = session::confirmClear, enabled = history.canClear,
             modifier = Modifier.heightIn(min = 48.dp).testTag("confirm_clear")) { Text(stringResource(R.string.clear_confirm)) } },
         dismissButton = { TextButton(onClick = session::cancelClear,

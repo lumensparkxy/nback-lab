@@ -1,11 +1,17 @@
 package com.example.nback
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
@@ -16,10 +22,13 @@ import androidx.compose.runtime.Composable
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.nback.engine.MonotonicClock
 import com.example.nback.engine.SessionScreen
@@ -81,21 +90,30 @@ class MultiTypeUiTest {
                 // ComponentActivity has no app onCreate renderer. Reattach this fixture to
                 // the recreated activity; preserve the externally owned fake clock/state.
                 compose.activityRule.scenario.onActivity { it.setContent { TestContent() } }
-                for (scale in listOf(1f, 2f)) for (mask in 1..7) {
+                for (scale in listOf(1f, 2f)) for (mask in 1..7) for (practice in listOf(false, true)) {
                     compose.runOnIdle {
-                        fontScale.value = scale; game.home(); time = 0; game.start(modeMask = mask); publish()
+                        fontScale.value = scale; game.home(); time = 0; game.start(modeMask = mask, practice = practice); publish()
                     }
                     val grid = compose.onNodeWithTag("grid")
                     val warmup = grid.fetchSemanticsNode().boundsInRoot
-                    assertTrue("Nonempty stimulus area mask=$mask font=$scale", warmup.width > 0 && warmup.height > 0)
+                    if (warmup.width <= 0 || warmup.height <= 0) {
+                        screenshot("failed-mode-$mask-font-${scale.toInt()}-orientation-$config")
+                        fail("Nonempty stimulus area mask=$mask font=$scale orientation=$config\n" +
+                            compose.onRoot(useUnmergedTree = true).printToString())
+                    }
+                    grid.assertHeightIsAtLeast(96.dp).assertWidthIsAtLeast(96.dp)
                     activeTypes(mask).forEach { compose.onNodeWithTag(tag(it)).assertIsDisplayed().assertIsNotEnabled().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp) }
                     compose.runOnIdle { time = 6000; game.advance(); publish() }
                     assertEquals(warmup, grid.fetchSemanticsNode().boundsInRoot)
                     activeTypes(mask).forEach { type ->
                         compose.onNodeWithTag(tag(type)).assertIsEnabled().performClick()
+                        val response = compose.onNodeWithTag(tag(type)).fetchSemanticsNode().config
+                        if (response.contains(SemanticsProperties.StateDescription)) {
+                            assertEquals("✓ Recorded", response[SemanticsProperties.StateDescription])
+                        }
                         assertEquals("Recorded status must not shift grid mask=$mask font=$scale", warmup, grid.fetchSemanticsNode().boundsInRoot)
                     }
-                    screenshot("mode-$mask-font-${scale.toInt()}-orientation-$config")
+                    screenshot("mode-$mask-font-${scale.toInt()}-orientation-$config${if (practice) "-practice" else ""}")
                 }
             }
         } finally {
@@ -109,6 +127,25 @@ class MultiTypeUiTest {
         compose.onNodeWithTag("accuracy").assertDoesNotExist()
         compose.onNodeWithTag("accuracy_2").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("accuracy_4").performScrollTo().assertIsDisplayed()
+    }
+    @Test fun compactControlsAlwaysExposeFullNamesAndIndependentRecordedStates() {
+        compose.activityRule.scenario.onActivity { activity ->
+            activity.setContent { Box(Modifier.heightIn(max = 480.dp)) { TestContent() } }
+        }
+        compose.runOnIdle { fontScale.value = 2f; game.start(modeMask = 7); publish() }
+        val names = mapOf(StimulusType.POSITION to "Position", StimulusType.COLOUR to "Colour", StimulusType.NUMBER to "Number")
+        for ((type, name) in names) {
+            compose.onNodeWithTag(tag(type)).assertContentDescriptionEquals("$name match")
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Watch the warm-up."))
+        }
+        compose.runOnIdle { time = 6000; game.advance(); publish() }
+        for (type in names.keys) {
+            compose.onNodeWithTag(tag(type)).assertIsEnabled()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Tap if this type matches."))
+                .performClick()
+            compose.onNodeWithTag(tag(type)).assertIsNotEnabled()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "✓ Recorded"))
+        }
     }
     private fun screenshot(name: String) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()

@@ -120,4 +120,6 @@
     <string name="colour_orange">Orange</string>
     <string name="visual_stimulus">Visual stimulus</string>
     <string name="type_recorded">✓ Recorded</string>
+    <string name="match_action">match</string>
+    <string name="skip_short">Skip</string>
 </resources>

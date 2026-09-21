@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.nback.engine.StimulusType
@@ -125,54 +127,46 @@ private fun Instructions(settings: SettingsState, onSelect: (Int) -> Unit, onSta
 @Composable
 private fun Playing(state: SessionState, onMatch: (StimulusType) -> Unit, onHome: () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        if (maxWidth > maxHeight && state.config.types.size > 1) {
+        val compactResponses = maxWidth > maxHeight || maxHeight < 650.dp
+        if (maxWidth > maxHeight) {
             Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
                     StimulusView(state.stimulus, state.config.modeMask, Modifier.weight(1f).fillMaxSize())
                     Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Progress(state)
-                        if (state.config.practice) SkipButton(onHome)
+                        Progress(state, compactResponses)
+                        if (state.config.practice) SkipButton(onHome, compact = true)
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (type in state.config.types) Column(Modifier.weight(1f)) { TypeResponseControl(state, type, onMatch) }
-                }
-            }
-        } else if (maxWidth > maxHeight) {
-            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(24.dp), verticalAlignment = Alignment.CenterVertically) {
-                StimulusView(state.stimulus, state.config.modeMask, Modifier.weight(1f).fillMaxSize())
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PlayControls(state, onMatch, onHome)
+                    for (type in state.config.types) Column(Modifier.weight(1f)) { TypeResponseControl(state, type, onMatch, compactResponses) }
                 }
             }
         } else {
-            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Progress(state)
+            Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(if (compactResponses) 8.dp else 12.dp)) {
+                if (compactResponses && state.config.practice) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(Modifier.weight(1f)) { Progress(state, compact = true) }
+                        Box(Modifier.weight(1f)) { SkipButton(onHome, compact = true) }
+                    }
+                } else Progress(state, compactResponses)
                 StimulusView(state.stimulus, state.config.modeMask, Modifier.weight(1f).fillMaxWidth())
-                ResponseControls(state, onMatch)
-                if (state.config.practice) SkipButton(onHome)
+                ResponseControls(state, onMatch, compactResponses)
+                if (state.config.practice && !compactResponses) SkipButton(onHome)
             }
         }
     }
 }
 
 @Composable
-private fun PlayControls(state: SessionState, onMatch: (StimulusType) -> Unit, onHome: () -> Unit) {
-    Progress(state)
-    ResponseControls(state, onMatch)
-    if (state.config.practice) SkipButton(onHome)
-}
-
-@Composable
-private fun Progress(state: SessionState) {
-    Text(modeTitle(state.config.modeMask, state.config.level, state.config.practice), color = Muted, style = MaterialTheme.typography.labelLarge)
+private fun Progress(state: SessionState, compact: Boolean = false) {
+    Text(if (compact) stringResource(R.string.level_option, state.config.level) else modeTitle(state.config.modeMask, state.config.level, state.config.practice), color = Muted, style = MaterialTheme.typography.labelLarge)
     Text(stringResource(if (state.isWarmUp) R.string.warmup_progress else if (state.config.practice) R.string.practice_progress else R.string.scored_progress, state.progress, state.config.level),
         style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag("progress"))
 }
 
 @Composable
-private fun ResponseControls(state: SessionState, onMatch: (StimulusType) -> Unit) {
-    if (state.config.modeMask == 1) {
+private fun ResponseControls(state: SessionState, onMatch: (StimulusType) -> Unit, compact: Boolean = false) {
+    if (state.config.modeMask == 1 && !compact) {
         // Reserve the largest status layout so input never moves the grid.
         val messages = listOf(stringResource(R.string.watch_positions),
             stringResource(R.string.response_recorded), pluralStringResource(R.plurals.match_prompt, state.config.level, state.config.level))
@@ -182,11 +176,37 @@ private fun ResponseControls(state: SessionState, onMatch: (StimulusType) -> Uni
                 style = MaterialTheme.typography.bodyLarge, modifier = Modifier.testTag("response_status"))
         }
     }
-    for (type in state.config.types) TypeResponseControl(state, type, onMatch)
+    for (type in state.config.types) TypeResponseControl(state, type, onMatch, compact)
 }
 
 @Composable
-private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch: (StimulusType) -> Unit) {
+private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch: (StimulusType) -> Unit, compact: Boolean = false) {
+    if (compact) {
+        val label = stringResource(R.string.type_match, typeLabel(type))
+        val recorded = type in state.recordedTypes
+        val status = stringResource(if (recorded) R.string.type_recorded else if (state.isWarmUp) R.string.watch_warmup else R.string.match_if_same)
+        Button(onClick = { onMatch(type) }, enabled = state.canRespond(type),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                .testTag(if (type == StimulusType.POSITION) "match" else "match_${type.bit}")
+                .semantics { contentDescription = label; stateDescription = status },
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White,
+                disabledContainerColor = Cell, disabledContentColor = Muted)) {
+            BoxWithConstraints(Modifier.fillMaxWidth().clearAndSetSemantics {}) {
+                if (maxWidth < 220.dp) {
+                    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(typeLabel(type), style = MaterialTheme.typography.labelLarge)
+                        CompactResponseStatus(recorded)
+                    }
+                } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(typeLabel(type), style = MaterialTheme.typography.labelLarge)
+                    CompactResponseStatus(recorded)
+                }
+            }
+        }
+        return
+    }
     Column {
         if (state.config.modeMask != 1) {
             val messages = listOf(stringResource(R.string.watch_warmup), stringResource(R.string.type_recorded), stringResource(R.string.match_if_same))
@@ -196,8 +216,18 @@ private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch
                     style = MaterialTheme.typography.labelMedium, modifier = Modifier.testTag("status_${type.bit}"))
             }
         }
-        ActionButton(stringResource(R.string.type_match, typeLabel(type)), { onMatch(type) },
+        val label = stringResource(R.string.type_match, typeLabel(type))
+        ActionButton(label, { onMatch(type) },
             state.canRespond(type), if (type == StimulusType.POSITION) "match" else "match_${type.bit}")
+    }
+}
+
+@Composable
+private fun CompactResponseStatus(recorded: Boolean) {
+    val messages = listOf(stringResource(R.string.match_action), stringResource(R.string.type_recorded))
+    Box {
+        messages.forEach { Text(it, style = MaterialTheme.typography.labelSmall, modifier = Modifier.alpha(0f).clearAndSetSemantics {}) }
+        Text(messages[if (recorded) 1 else 0], style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -273,9 +303,12 @@ private fun DifficultySettings(settings: SettingsState, onSelect: (Int) -> Unit,
 }
 
 @Composable
-private fun SkipButton(onHome: () -> Unit) {
-    OutlinedButton(onClick = onHome, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("skip")) {
-        Text(stringResource(R.string.skip_practice))
+private fun SkipButton(onHome: () -> Unit, compact: Boolean = false) {
+    val label = stringResource(R.string.skip_practice)
+    OutlinedButton(onClick = onHome, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("skip")
+        .then(if (compact) Modifier.semantics { contentDescription = label } else Modifier)) {
+        Text(if (compact) stringResource(R.string.skip_short) else label,
+            modifier = if (compact) Modifier.clearAndSetSemantics {} else Modifier)
     }
 }
 

@@ -14,6 +14,16 @@ class HistoryLifecycleTest {
         val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
         fun shell(command: String): String = android.os.ParcelFileDescriptor.AutoCloseInputStream(
             automation.executeShellCommand(command)).bufferedReader().use { it.readText().trim() }
+        fun capture(name: String) {
+            val context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+            val directory = java.io.File(context.getExternalFilesDir(null), "f004-qa").apply { mkdirs() }
+            automation.takeScreenshot().let { bitmap ->
+                java.io.File(directory, "$name.png").outputStream().use {
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+                }
+                bitmap.recycle()
+            }
+        }
         val originalScale = shell("settings --user current get system font_scale")
         try {
             val model = compose.activity.session
@@ -28,10 +38,12 @@ class HistoryLifecycleTest {
             }
             compose.runOnIdle { model.askClear() }
             compose.onNodeWithTag("confirm_clear").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+            capture("history-clear-before-scroll")
             compose.onNodeWithTag("clear_explanation").performTouchInput { swipeUp() }
             val range = compose.onNodeWithTag("clear_explanation").fetchSemanticsNode().config[
                 androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange]
             assertTrue("Full explanation must be scrollable at 200% in landscape", range.value() > 0f)
+            capture("history-clear-after-scroll")
             compose.onNodeWithTag("cancel_clear").performClick()
         } finally {
             if (originalScale == "null") shell("settings --user current delete system font_scale")
