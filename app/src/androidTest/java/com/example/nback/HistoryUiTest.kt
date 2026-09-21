@@ -81,7 +81,9 @@ class HistoryUiTest {
         launch((0 until 10_000).map { sampleRecord("r$it", it % 3 + 1, 1_750_000_000_000L + it) })
         open()
         compose.onNodeWithTag("filter_3").performScrollTo().performClick()
-        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("record_r9698"))
+        // Address stable lazy-list keys without assuming a header count or
+        // linearly paging through 10,000 rows on slower emulator targets.
+        compose.onNodeWithTag("history_list").performScrollToKey("session:r9698")
         compose.onNodeWithTag("record_r9698").performClick()
         compose.onNodeWithText("Hits: 4 of 6 · Misses: 2").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("False alarms: 3 of 14").performScrollTo().assertIsDisplayed()
@@ -92,7 +94,7 @@ class HistoryUiTest {
         assertTrue(model.historyNavigation.scrollIndex >= 100)
         compose.onNodeWithTag("history_list").performScrollToIndex(0)
         compose.onNodeWithTag("filter_0").performClick()
-        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("record_r0"))
+        compose.onNodeWithTag("history_list").performScrollToKey("session:r0")
         compose.onNodeWithTag("record_r0").assertIsDisplayed()
         compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().let { assertTrue("Lazy list must not compose 10000 rows", it.size < 100) }
     }
