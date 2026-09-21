@@ -25,6 +25,9 @@ class GuidedLifecycleTest {
     @Test fun helpRetainsInMemoryAcrossRotationAndFreshOwnerStartsCollapsed() {
         val model = compose.activity.session
         compose.waitUntil(10000) { !model.settings.loading }
+        val original = model.settings
+        val originalHelp = model.homeUi.helpExpanded
+        try {
         compose.runOnIdle {
             model.home(); model.homeUi.helpExpanded = false; model.selectLevel(2)
             com.example.nback.engine.StimulusType.entries.forEach { if (model.settings.modeMask and it.bit == 0) model.toggleType(it) }
@@ -47,6 +50,16 @@ class GuidedLifecycleTest {
             holder.clear()
         }
         compose.onNodeWithTag("help").performClick()
+        } finally {
+            compose.runOnIdle {
+                model.home(); model.homeUi.helpExpanded = originalHelp; model.selectLevel(original.level)
+                // Restore preferences so later real-Activity tests start from their own setup.
+                com.example.nback.engine.StimulusType.entries.filter { original.modeMask and it.bit != 0 && model.settings.modeMask and it.bit == 0 }.forEach(model::toggleType)
+                com.example.nback.engine.StimulusType.entries.filter { original.modeMask and it.bit == 0 && model.settings.modeMask and it.bit != 0 }.forEach(model::toggleType)
+            }
+            compose.waitUntil(10000) { !model.settings.saving }
+            compose.runOnIdle { assertNotEquals(SettingsNotice.SAVE_FAILED, model.settings.notice) }
+        }
     }
     @Test fun savedDetailsRotateAndLargeTextHistoryRemainsUsable() {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
