@@ -2,19 +2,28 @@
 <resources>
   <string name="app_name">N-back</string>
   <string name="welcome_title">Visual n-back</string>
-  <string name="session_eyebrow">POSITION · 2-BACK</string>
+  <string name="session_eyebrow">POSITION · %1$d-BACK</string>
   <string name="instructions">Tap Match when the highlighted square is in the same position as two turns ago. Otherwise, wait. The first two turns are warm-up.</string>
-  <string name="example_heading">Two turns ago</string>
+  <plurals name="example_heading">
+    <item quantity="one">%1$d turn ago</item>
+    <item quantity="other">%1$d turns ago</item>
+  </plurals>
   <string name="example_grid">Example turn %1$d</string>
   <string name="example_explanation">A → B → A: the third turn matches the first. Tap Match on the third turn.</string>
-  <string name="session_details">2 warm-up turns · 20 scored turns · 66 seconds\nEach square appears for one second. You have the full three-second turn to respond.</string>
+  <plurals name="session_details">
+    <item quantity="one">%1$d warm-up turn · 20 scored turns · %2$d seconds\nEach square appears for one second. You have the full three-second turn to respond.</item>
+    <item quantity="other">%1$d warm-up turns · 20 scored turns · %2$d seconds\nEach square appears for one second. You have the full three-second turn to respond.</item>
+  </plurals>
   <string name="visual_requirement">This task requires seeing positions and uses fixed three-second turns. A nonvisual mode and adjustable timing are not available.</string>
   <string name="start">Start session</string>
-  <string name="warmup_progress">Warm-up %1$d/2</string>
+  <string name="warmup_progress">Warm-up %1$d/%2$d</string>
   <string name="scored_progress">Turn %1$d/20</string>
-  <string name="watch_positions">Watch these first two positions.</string>
+  <string name="watch_positions">Watch the warm-up positions.</string>
   <string name="response_recorded">Response recorded</string>
-  <string name="match_prompt">Same position as two turns ago?</string>
+  <plurals name="match_prompt">
+    <item quantity="one">Same position as %1$d turn ago?</item>
+    <item quantity="other">Same position as %1$d turns ago?</item>
+  </plurals>
   <string name="match">Match</string>
   <string name="visual_grid">Visual position grid</string>
   <string name="interrupted">Session interrupted</string>
@@ -36,4 +45,38 @@
   <string name="outcome_count">%1$s: %2$d</string>
   <string name="accuracy_note">Accuracy includes correctly waiting on non-matches. Check hits and misses too. These results are not saved to history.</string>
   <string name="play_again">Play again</string>
+  <string name="instructions_1">Tap Match when the square is in the same position as one turn ago. Otherwise, wait. The first turn is warm-up.</string>
+  <string name="instructions_3">Tap Match when the square is in the same position as three turns ago. Otherwise, wait. The first three turns are warm-up.</string>
+  <string name="example_1">A → A: the second turn matches the first. Tap Match on the second turn.</string>
+  <string name="example_3">A → B → C → A: the fourth turn matches the first. Tap Match on the fourth turn.</string>
+  <string name="difficulty">Difficulty</string>
+  <string name="level_option">%1$d-back</string>
+  <string name="settings_loading">Loading difficulty…</string>
+  <string name="settings_saving">Saving…</string>
+  <string name="settings_reset">Difficulty was reset to 2-back.</string>
+  <string name="settings_load_failed">Couldn’t load your saved difficulty. Using 2-back.</string>
+  <string name="settings_save_failed">Couldn’t remember this difficulty. You can still play.</string>
+  <string name="retry">Retry</string>
+  <string name="guided_practice">Guided practice</string>
+  <string name="practice_description">Try four guided examples at your chosen level. Each turn lasts three seconds, then practice pauses to explain the answer. Tap Next example when you are ready.</string>
+  <string name="practice_eyebrow">PRACTICE · %1$d-BACK</string>
+  <string name="practice_progress">Practice %1$d/4</string>
+  <string name="practice_interrupted">Practice interrupted</string>
+  <string name="restart_practice">Restart practice</string>
+  <string name="skip_practice">Skip practice</string>
+  <string name="practice_complete">Practice complete</string>
+  <string name="practice_feedback">Compare the positions</string>
+  <string name="this_turn">This turn</string>
+  <plurals name="reference_turn">
+    <item quantity="one">%1$d turn earlier</item>
+    <item quantity="other">%1$d turns earlier</item>
+  </plurals>
+  <string name="positions_match">The positions matched.</string>
+  <string name="positions_differ">The positions were different.</string>
+  <string name="you_tapped">You tapped Match.</string>
+  <string name="you_waited">You waited.</string>
+  <string name="expected_match">Tap Match when the position is the same as the highlighted earlier turn.</string>
+  <string name="expected_wait">Wait when the position is different from the highlighted earlier turn.</string>
+  <string name="practice_again">Practice again</string>
+  <string name="next_example">Next example</string>
 </resources>

@@ -21,9 +21,9 @@ Serialize preference writes and expose explicit loading/saving/error states as
 specified in F002. Do not perform storage I/O in Compose or in the pure Kotlin
 engine. Snapshot the selected level when creating a session.
 
-Pin `androidx.datastore:datastore-preferences` in the version catalog when
-implementing, after compatibility verification with the current toolchain. The
-specification-only PR adds no dependency. A small preference does not require a new
+`androidx.datastore:datastore-preferences` is pinned to 1.2.1 in the version
+catalog for this implementation, with compatibility checked through the standard
+build and test workflow. A small preference does not require a new
 module, generic repository framework, service locator or database schema.
 
 Keep the app's existing backup/device-transfer exclusions. Do not store sequences,

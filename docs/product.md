@@ -19,10 +19,10 @@ are part of the approved product.
 
 ## Current implementation
 
-The development harness and fixed visual 2-back session are implemented, including
-instructions, timed play, interruption/restart and transient results. Configurable
-practice and saved history are not implemented. GitHub issues track review and
-delivery status.
+The development harness, visual 1-/2-/3-back sessions, Home difficulty settings
+and guided practice are implemented. Only the selected level is persisted;
+session results remain transient. Saved history is not implemented. GitHub issues
+track review and delivery status.
 
 ## Not in the initial scope
 
@@ -48,8 +48,7 @@ On 2026-09-21 the owner approved the direction of Home session settings, manual
 1-/2-/3-back selection (default 2), remembering the chosen level, and optional
 repeatable guided practice. Fixed normal timing and neutral feedback remain.
 The owner subsequently approved the detailed F002 contract and ADR-003 settings
-storage decision on the same date. Implementation is authorized; the current app
-remains the fixed 2-back delivery above until that work is delivered.
+storage decision on the same date. Implementation and revision-specific evidence are tracked by issue #4.
 
 Future expansion may introduce separate colour, sound, letter and symbol modes.
 Each requires its own specification before implementation. These future modes
