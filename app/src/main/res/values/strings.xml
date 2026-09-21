@@ -121,5 +121,6 @@
     <string name="visual_stimulus">Visual stimulus</string>
     <string name="type_recorded">✓ Recorded</string>
     <string name="match_action">match</string>
+    <string name="colour_palette">Colours: red, blue, green, yellow, purple and orange. Identify the colour itself; its name is not shown on the tile.</string>
     <string name="skip_short">Skip</string>
 </resources>

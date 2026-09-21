@@ -1,11 +1,15 @@
 # nback-lab
 
 An offline visual n-back Android app, developed through a portable, evidence-based
-agent coding harness. **Current implementation: visual 1-, 2- and 3-back sessions, guided practice and local history.**
-Choose a level, try optional explained examples, and complete a normal session.
-Your level is remembered locally. Completed normal sessions are saved on-device;
-History filters by difficulty and offers a confirmed clear across all levels.
-Practice and unfinished sessions are not saved.
+agent coding harness. **Current implementation: selectable Position, Colour and
+Number in all seven combinations, at 1-, 2- or 3-back, with guided practice and
+local history.** Choose the types to remember and respond independently for each.
+Colours have no name cue on the tile; an active Number appears inside it.
+
+Your difficulty and selected types are remembered locally. Completed normal
+sessions are saved on-device with per-type results. History filters by exact mode
+and difficulty and offers a confirmed clear across all modes and levels. Existing
+Position-only history is preserved. Practice and unfinished sessions are not saved.
 
 ## Start here
 

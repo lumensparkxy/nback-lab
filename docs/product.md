@@ -19,10 +19,12 @@ are part of the approved product.
 
 ## Current implementation
 
-The development harness, visual 1-/2-/3-back sessions, Home difficulty settings
-guided practice and completed-session history are implemented. The selected level
-and committed normal-session summaries are stored locally. Practice, unfinished
-sessions and unsaved results remain transient. GitHub issues track review and delivery status.
+The development harness and F001–F004 are implemented: selectable Position,
+Colour and Number in all seven combinations, manual 1-/2-/3-back, Home settings,
+guided practice and completed-session history with independent per-type results.
+The selected difficulty/types and committed summaries are stored locally. Practice,
+unfinished sessions and unsaved results remain transient. GitHub issues track
+review and delivery status.
 
 ## Not in the initial scope
 
@@ -52,11 +54,11 @@ storage decision on the same date. Implementation and revision-specific evidence
 
 On 2026-09-21 the owner approved including combinations immediately in the next
 stimulus-type feature, with users independently toggling which types are active.
-[F004](features/F004-stimulus-types-and-responses.md) drafts Position, Colour and
+[F004](features/F004-stimulus-types-and-responses.md) defines Position, Colour and
 Number selection, independent responses, practice and per-type results/history.
 The owner subsequently approved implementation: rules, settings, Number and
-independent responses/results/history are agreed. The explicit Colour name-cue
-choice remains open before that stimulus presentation is implemented. Sound
+independent responses/results/history are agreed. The owner selected colour-only stimuli, with the Number digit inside the tile
+when active and no colour-name cue during play. Sound
 remains a later feature. Delivery is tracked in issues #23 and #24.
 These additions remain outside the delivered initial visual-position scope.
 Do not add unavailable-mode controls to the current app.

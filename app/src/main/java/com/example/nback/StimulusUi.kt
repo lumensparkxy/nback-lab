@@ -22,6 +22,8 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
@@ -34,6 +36,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.nback.engine.StimulusType
 import com.example.nback.engine.activeTypes
+
+internal object StimulusColours {
+    val palette = listOf(Color(0xFFD32F2F), Color(0xFF1565C0), Color(0xFF2E7D32),
+        Color(0xFFFDD835), Color(0xFF7B1FA2), Color(0xFFEF6C00))
+    val neutral = Color(0xFF18675A)
+    val inactive = Color(0xFFE1E6DF)
+    fun foreground(fill: Color) = if (fill.luminance() > 0.179f) Color.Black else Color.White
+}
 
 @Composable internal fun typeLabel(type: StimulusType) = stringResource(when (type) {
     StimulusType.POSITION -> R.string.type_position
@@ -74,6 +84,7 @@ import com.example.nback.engine.activeTypes
         StimulusType.COLOUR -> R.string.colour_rule
         StimulusType.NUMBER -> R.string.number_rule
     }))
+    if (mask and StimulusType.COLOUR.bit != 0) Text(stringResource(R.string.colour_palette))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for (i in 0..n) {
             val example = if (i == n) 0 else i
@@ -96,20 +107,23 @@ import com.example.nback.engine.activeTypes
         Canvas(Modifier.size(side)) {
             val gap = size.width * 0.035f
             val cellSide = (size.width - gap * 2) / 3
-            val highlighted = if (spatial) values[StimulusType.POSITION] else 4.takeIf { values.isNotEmpty() }
+            val highlighted = if (spatial) values[StimulusType.POSITION] else 4.takeIf { values.keys.any { mask and it.bit != 0 } }
             repeat(9) { index ->
                 if (!spatial && index != 4) return@repeat
                 val offset = Offset((index % 3) * (cellSide + gap), (index / 3) * (cellSide + gap))
                 val radius = CornerRadius(cellSide * 0.14f)
                 val active = index == highlighted
-                val fill = if (active) Color(0xFF18675A) else Color(0xFFE1E6DF)
+                val colour = values[StimulusType.COLOUR]?.takeIf { mask and StimulusType.COLOUR.bit != 0 }
+                val fill = if (active) colour?.let { StimulusColours.palette[it] } ?: StimulusColours.neutral else StimulusColours.inactive
                 drawRoundRect(fill, offset, Size(cellSide, cellSide), radius)
                 if (active) {
+                    val foreground = StimulusColours.foreground(fill)
+                    if (colour != null) drawRoundRect(Color.Black, offset, Size(cellSide, cellSide), radius, style = Stroke(2.dp.toPx()))
                     val inset = 4.dp.toPx()
-                    drawRoundRect(Color.White, offset + Offset(inset, inset), Size(cellSide - inset * 2, cellSide - inset * 2), radius, style = Stroke(2.dp.toPx()))
-                    values[StimulusType.NUMBER]?.let { number ->
+                    drawRoundRect(foreground, offset + Offset(inset, inset), Size(cellSide - inset * 2, cellSide - inset * 2), radius, style = Stroke(2.dp.toPx()))
+                    values[StimulusType.NUMBER]?.takeIf { mask and StimulusType.NUMBER.bit != 0 }?.let { number ->
                         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                            color = android.graphics.Color.WHITE; textAlign = Paint.Align.CENTER
+                            color = foreground.toArgb(); textAlign = Paint.Align.CENTER
                             textSize = cellSide * 0.60f; isFakeBoldText = true
                         }
                         drawContext.canvas.nativeCanvas.drawText((number + 1).toString(), offset.x + cellSide / 2,

@@ -1,15 +1,15 @@
 # F004 — Stimulus types and independent match responses
 
-Agreement: Agreed for rules, settings, responses, Number and per-type history —
-implementation approved on 2026-09-21. Colour stimulus cue presentation is pending
-the explicit choice below; other approved work may proceed independently.
+Agreement: Agreed — implementation approved on 2026-09-21, including colour-only
+stimuli with no colour name inside the tile. When Number is active, its digit
+appears inside the coloured tile.
 
 Delivery: [issue #23](https://github.com/lumensparkxy/nback-lab/issues/23) (rules,
 settings and history) and [issue #24](https://github.com/lumensparkxy/nback-lab/issues/24) (UI).
 
 This feature extends F001–F003 only where explicitly described below. Owner
 approval authorizes implementation within ready issue scope, but not merge or
-publishing. Colour cue presentation remains a blocking question for Colour UI.
+publishing. The owner has resolved the Colour cue choice as colour alone.
 
 ## User outcome
 
@@ -81,8 +81,12 @@ contrast. When Number is inactive, show no digit. Inactive attributes do not var
 as distractors. Number identity is independent of grid-cell identity: 7 does
 not mean cell 7. Digits must remain legible on every delivered colour.
 
-Use a fixed palette, provisionally six colours. Its exact colours and accessible
-presentation need agreement before Colour is ready; see open questions.
+Use six fixed colours: red, blue, green, yellow, purple and orange. Show colour
+alone during play; do not add a colour name inside or beside the stimulus. Names
+belong in instructions and practice feedback. Use contrasting digits and an
+outline so the tile boundary remains visible, including for light colours.
+This visual-only choice does not provide equivalent play for every colour-vision
+deficiency; explain the visual requirements before starting.
 
 Keep n warm-up turns followed by 20 scored turns. Show the stimulus for the
 first 1,000 ms of each 3,000 ms turn, then hide its position/colour/number content
@@ -214,21 +218,19 @@ this resolves the earlier product-direction question about combined modes.
 The F004 extensions in ADR-003/004 define type-set preferences and per-type
 summaries. Keep storage in app and rules/timing/scoring in engine.
 
-Issue #23 owns rules/settings/history and is ready independently of the Colour
-cue presentation. The first feature delivery includes combinations; do not defer
-them to a later release. UI scope must resolve the colour-cue choice before work
-on that presentation. No additional dependencies or architectural layers are needed.
+Issue #23 owns rules/settings/history; issue #24 owns UI. Both are ready, including
+the approved colour-only presentation. The first feature delivery includes all
+combinations. No additional dependencies or architectural layers are needed.
 
 Implementation requires doctor/verify checks, emulator tests and rendered QA on
 an explicitly selected emulator, plus independent review under the repository
 workflow. Run the failure-gate check for failure-handling changes. Documentation
 review alone cannot satisfy runtime acceptance criteria.
 
-## Open questions
+## Colour presentation decision
 
-1. **Colour accessibility:** should stimuli show colour alone (names in instructions
-   and feedback), or colour plus its name on every stimulus? This choice is pending
-   explicit owner input because the earlier draft did not select either option.
+The owner selected colour alone: the tile contains the digit when Number is
+active, with no additional colour-name cue.
 
 ## Agreement record
 
@@ -240,4 +242,5 @@ implementation approval is recorded below.
 
 The owner subsequently approved implementation. This accepts Number 1–9, separate
 labeled irreversible match responses and per-type results without a combined score.
-The colour-cue alternative is being clarified before implementing Colour UI.
+The owner then selected colour alone because the symbol occupies the tile.
+This resolves the remaining Colour UI question and authorizes its implementation.
