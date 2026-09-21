@@ -24,6 +24,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.key
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -59,27 +60,19 @@ import com.example.nback.engine.StimulusType
 import com.example.nback.engine.SessionScreen
 import com.example.nback.engine.SessionState
 
-private val Ink = Color(0xFF173C38)
-private val Paper = Color(0xFFF6F5EF)
-private val Muted = Color(0xFF465B57)
-private val Cell = Color(0xFFE1E6DF)
-
 @Composable
 internal fun NBackApp(session: SessionViewModel) {
     val state = session.state
     val activity = LocalActivity.current as? MainActivity
     SideEffect { activity?.keepScreenAwake(state.screen == SessionScreen.PLAYING) }
     DisposableEffect(activity) { onDispose { activity?.keepScreenAwake(false) } }
-    MaterialTheme(colorScheme = lightColorScheme(
-        primary = Ink, onPrimary = Color.White, background = Paper, onBackground = Ink,
-        surface = Paper, onSurface = Ink, onSurfaceVariant = Muted,
-    )) {
+    NBackTheme {
         val time = historyTime(session.formatRevision)
         if (session.historyNavigation.open) HistoryScreen(session, time)
         else SessionContent(state, session::start, { session.match() }, session::home, session.settings,
             session::selectLevel, session::practice, session::nextExample, session::retrySave,
             session.history.state, session.resultId, time, session::openHistory,
-            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match)
+            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match, session.homeUi)
     }
 }
 
@@ -91,6 +84,7 @@ internal fun SessionContent(
     history: HistoryState = HistoryState(), resultId: String? = null, time: HistoryTime = HistoryTime(),
     onHistory: () -> Unit = {}, onRetryResult: () -> Unit = {}, onRetryAll: () -> Unit = {},
     onToggleType: (StimulusType) -> Unit = {}, onTypeMatch: (StimulusType) -> Unit = { onMatch() },
+    homeUi: HomeUiState = remember { HomeUiState() },
 ) {
     Scaffold(containerColor = Paper) { insets ->
         BoxWithConstraints(Modifier.fillMaxSize().padding(insets)) {
@@ -99,7 +93,7 @@ internal fun SessionContent(
             } else 24.dp
             Box(Modifier.fillMaxSize().padding(horizontal = sidePadding, vertical = 16.dp)) {
                 when (state.screen) {
-                    SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType)
+                    SessionScreen.HOME -> GuidedHome(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType, homeUi)
                     SessionScreen.PLAYING -> Playing(state, onTypeMatch, onHome)
                     SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
                     SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
@@ -114,25 +108,6 @@ internal fun SessionContent(
 internal fun PageTitle(text: String) {
     Text(text, style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold,
         modifier = Modifier.semantics { heading() })
-}
-
-@Composable
-private fun Instructions(settings: SettingsState, onSelect: (Int) -> Unit, onStart: () -> Unit, onPractice: () -> Unit, onRetry: () -> Unit, history: HistoryState, onHistory: () -> Unit, onRetryAll: () -> Unit, onToggleType: (StimulusType) -> Unit) {
-    val level = settings.level
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        Text(modeTitle(settings.modeMask, level), style = MaterialTheme.typography.labelLarge, color = Muted)
-        PageTitle(stringResource(R.string.welcome_title))
-        TypeSettings(settings, onToggleType)
-        DifficultySettings(settings, onSelect, onRetry)
-        ActionButton(stringResource(R.string.history), onHistory, tag = "history")
-        UnsavedSummary(history, onRetryAll)
-        TypeInstructions(settings.modeMask, level)
-        Text(pluralStringResource(R.plurals.session_details, level, level, (level + 20) * 3), style = MaterialTheme.typography.bodyMedium, color = Muted)
-        Text(stringResource(R.string.visual_requirement), style = MaterialTheme.typography.bodyMedium, color = Muted)
-        ActionButton(stringResource(R.string.start), onStart, enabled = !settings.loading, tag = "start")
-        Text(stringResource(R.string.practice_description), style = MaterialTheme.typography.bodyMedium, color = Muted)
-        ActionButton(stringResource(R.string.guided_practice), onPractice, enabled = !settings.loading, tag = "practice")
-    }
 }
 
 @Composable
@@ -237,10 +212,10 @@ private fun Results(state: SessionState, onStart: () -> Unit, onHome: () -> Unit
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.session_complete), color = Muted, style = MaterialTheme.typography.labelLarge)
         PageTitle(stringResource(R.string.results))
-        MultiResultSummary(state.results, state.config.level, entry?.record?.completedAt, time)
         entry?.let { SaveNotice(it.status, history.clearing, onRetry) }
-        ActionButton(stringResource(R.string.history), onHistory, tag = "history")
+        MultiResultSummary(state.results, state.config.level, entry?.record?.completedAt, time)
         ActionButton(stringResource(R.string.play_again), onStart, tag = "play_again")
+        QuietButton(stringResource(R.string.history), onHistory, tag = "history")
         HomeButton(onHome)
     }
 }
@@ -249,9 +224,11 @@ private fun Results(state: SessionState, onStart: () -> Unit, onHome: () -> Unit
 internal fun ActionButton(label: String, action: () -> Unit, enabled: Boolean = true, tag: String) {
     Button(onClick = action, enabled = enabled,
         modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag(tag),
+        shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White,
             disabledContainerColor = Cell, disabledContentColor = Muted)) {
         Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(vertical = 6.dp))
+        if (tag == "start") AppIcon(R.drawable.ic_arrow_forward, Modifier.padding(start = 12.dp))
     }
 }
 
@@ -259,34 +236,6 @@ internal fun ActionButton(label: String, action: () -> Unit, enabled: Boolean = 
 internal fun HomeButton(onHome: () -> Unit) {
     OutlinedButton(onClick = onHome, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("home")) {
         Text(stringResource(R.string.home), modifier = Modifier.padding(vertical = 6.dp))
-    }
-}
-
-@Composable
-private fun DifficultySettings(settings: SettingsState, onSelect: (Int) -> Unit, onRetry: () -> Unit) {
-    val label = stringResource(R.string.difficulty)
-    Column(Modifier.selectableGroup().semantics { contentDescription = label }, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(stringResource(R.string.difficulty), fontWeight = FontWeight.SemiBold)
-        for (level in 1..3) {
-            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("level_$level")
-                .selectable(selected = level == settings.level, enabled = !settings.loading, role = Role.RadioButton, onClick = { onSelect(level) }),
-                verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(selected = level == settings.level, onClick = null, enabled = !settings.loading)
-                Text(stringResource(R.string.level_option, level), Modifier.padding(start = 12.dp))
-            }
-        }
-        if (settings.loading) Text(stringResource(R.string.settings_loading), Modifier.testTag("settings_loading"))
-        if (settings.saving) Text(stringResource(R.string.settings_saving), Modifier.testTag("settings_saving"))
-        settings.notice?.let { notice ->
-            Text(stringResource(when (notice) {
-                SettingsNotice.RESET -> R.string.settings_reset
-                SettingsNotice.TYPES_RESET -> R.string.types_reset
-                SettingsNotice.BOTH_RESET -> R.string.settings_both_reset
-                SettingsNotice.LOAD_FAILED -> R.string.settings_load_failed
-                SettingsNotice.SAVE_FAILED -> R.string.settings_save_failed
-            }), Modifier.testTag("settings_notice").semantics { liveRegion = LiveRegionMode.Polite })
-            if (notice == SettingsNotice.SAVE_FAILED) ActionButton(stringResource(R.string.retry), onRetry, tag = "retry")
-        }
     }
 }
 
@@ -321,12 +270,14 @@ private fun PracticeExplanation(state: SessionState, onNext: (Long) -> Unit, onP
             }
         }
         for ((type, response) in feedback.types) {
+            Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(typeLabel(type), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.type_comparison, valueLabel(type, response.current), valueLabel(type, response.reference)))
             Text(stringResource(if (response.matches) R.string.type_matched else R.string.type_differed, typeLabel(type)),
                 Modifier.testTag(if (type == StimulusType.POSITION) "feedback_answer" else "feedback_${type.bit}").semantics { liveRegion = LiveRegionMode.Polite })
             Text(if (response.responded) stringResource(R.string.tapped_type, typeLabel(type)) else stringResource(R.string.you_waited))
             Text(if (response.matches) stringResource(R.string.expected_type, typeLabel(type)) else stringResource(R.string.expected_type_wait, typeLabel(type)))
+        }
         }
         if (complete) {
             ActionButton(stringResource(R.string.practice_again), onPractice, tag = "practice_again")

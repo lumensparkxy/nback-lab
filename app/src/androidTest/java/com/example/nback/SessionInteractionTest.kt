@@ -14,6 +14,8 @@ import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -95,9 +97,10 @@ class SessionInteractionTest {
             }
             at(origin + 66_000)
             compose.onNodeWithText("75% accuracy").assertIsDisplayed()
-            compose.onNodeWithText("Correct: 15/20").assertIsDisplayed()
+            compose.onNodeWithTag("result_details").performScrollTo().performClick()
+            compose.onNodeWithText("Correct: 15/20").performScrollTo().assertIsDisplayed()
             for (label in listOf("Hits: 4 of 6", "Misses: 2", "False alarms: 3 of 14", "Correct rejections: 11")) {
-                compose.onNodeWithText(label).performScrollTo().assertIsDisplayed()
+                compose.onAllNodesWithText(label).onLast().performScrollTo().assertIsDisplayed()
             }
         }
         compose.onNodeWithTag("home").performScrollTo().performClick()

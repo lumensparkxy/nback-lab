@@ -249,3 +249,9 @@ The owner subsequently approved implementation. This accepts Number 1–9, separ
 labeled irreversible match responses and per-type results without a combined score.
 The owner then selected colour alone because the symbol occupies the tile.
 This resolves the remaining Colour UI question and authorizes its implementation.
+
+## Presentation amendment
+
+[F005](F005-guided-design.md) revises setup, optional instructions, result detail
+and history control presentation. The gameplay and persistence contracts above
+remain unchanged.

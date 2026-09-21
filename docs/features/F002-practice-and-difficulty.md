@@ -243,3 +243,9 @@ practice examples with paused feedback, remembered-selection/failure semantics,
 and settings storage. The owner authorized merging the specification and
 implementing issue #4. Gameplay implementation still requires validation and
 separate owner authorization to merge its delivery PR.
+
+## Presentation amendment
+
+[F005](F005-guided-design.md) revises setup, optional instructions, result detail
+and history control presentation. The gameplay and persistence contracts above
+remain unchanged.

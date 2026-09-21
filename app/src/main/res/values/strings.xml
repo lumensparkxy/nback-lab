@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="app_name">N-back</string>
-  <string name="welcome_title">Visual n-back</string>
+  <string name="welcome_title">Set up your next round</string>
   <plurals name="session_details">
     <item quantity="one">%1$d warm-up turn · 20 scored turns · %2$d seconds\nEach square appears for one second. You have the full three-second turn to respond.</item>
     <item quantity="other">%1$d warm-up turns · 20 scored turns · %2$d seconds\nEach square appears for one second. You have the full three-second turn to respond.</item>
@@ -31,7 +31,6 @@
   <string name="settings_load_failed">Couldn’t load your saved settings. Using Position and 2-back.</string>
   <string name="settings_save_failed">Couldn’t remember these settings. You can still play.</string>
   <string name="retry">Retry</string>
-  <string name="guided_practice">Guided practice</string>
   <string name="practice_description">Try four guided examples at your chosen level. Each turn lasts three seconds, then practice pauses to explain the answer. Tap Next example when you are ready.</string>
   <string name="practice_progress">Practice %1$d/4</string>
   <string name="practice_interrupted">Practice interrupted</string>
@@ -78,7 +77,7 @@
     <string name="type_position">Position</string>
     <string name="type_colour">Colour</string>
     <string name="type_number">Number</string>
-    <string name="what_to_match">What to match</string>
+    <string name="what_to_match">Choose what to match</string>
     <string name="one_type_required">Keep at least one type active.</string>
     <string name="types_reset">Active types were reset to Position.</string>
     <string name="settings_both_reset">Session settings were reset to Position and 2-back.</string>
@@ -101,10 +100,10 @@
     <string name="mode_filters">Filter by exact mode</string>
     <string name="empty_mode">No saved sessions for these filters yet</string>
     <string name="type_accuracy">%1$s: %2$d%% accuracy</string>
-    <string name="type_hits_detail">You tapped %1$s match when it matched.</string>
-    <string name="type_misses_detail">%1$s matched, but you did not tap its button.</string>
-    <string name="type_false_detail">You tapped %1$s match when it differed.</string>
-    <string name="type_rejections_detail">You waited when %1$s differed.</string>
+    <string name="type_hits_detail">A hit is a tap when %1$s matched.</string>
+    <string name="type_misses_detail">A miss is a matching %1$s with no tap.</string>
+    <string name="type_false_detail">A false alarm is a tap when %1$s differed.</string>
+    <string name="type_rejections_detail">A correct rejection is waiting when %1$s differed.</string>
     <string name="cell_value">Cell %1$d</string>
     <string name="colour_red">Red</string>
     <string name="colour_blue">Blue</string>
@@ -117,4 +116,19 @@
     <string name="match_action">match</string>
     <string name="colour_palette">Colours: red, blue, green, yellow, purple and orange. Identify the colour itself; its name is not shown on the tile.</string>
     <string name="skip_short">Skip</string>
+    <string name="setup_subtitle">Choose what to remember and how far back.</string>
+    <string name="how_far">Choose how far back</string>
+    <string name="how_far_detail">Compare with this many turns earlier.</string>
+    <string name="card_position">Same place</string>
+    <string name="card_colour">Same colour</string>
+    <string name="card_number">Same digit</string>
+    <plurals name="look_back"><item quantity="one">Look %1$d turn back</item><item quantity="other">Look %1$d turns back</item></plurals>
+    <plurals name="session_brief"><item quantity="one">%1$d warm-up · 20 scored turns · %2$d seconds</item><item quantity="other">%1$d warm-up · 20 scored turns · %2$d seconds</item></plurals>
+    <string name="visual_brief">Visual task · Fixed three-second turns</string>
+    <string name="practice_invitation">New to n-back? Try guided practice</string>
+    <string name="how_to_play">How to play</string>
+    <string name="result_details">Outcome details</string>
+    <string name="history_actions">Manage history</string>
+    <string name="collapsed">Collapsed</string>
+    <string name="expanded">Expanded</string>
 </resources>

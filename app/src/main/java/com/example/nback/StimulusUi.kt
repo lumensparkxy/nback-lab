@@ -60,23 +60,6 @@ internal object StimulusColours {
         R.string.colour_yellow, R.string.colour_purple, R.string.colour_orange)[value])
 }
 
-@Composable internal fun TypeSettings(settings: SettingsState, toggle: (StimulusType) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(stringResource(R.string.what_to_match), fontWeight = FontWeight.SemiBold)
-        for (type in StimulusType.entries) {
-            val selected = settings.modeMask and type.bit != 0
-            val enabled = !settings.loading && settings.modeMask != type.bit
-            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("type_${type.bit}")
-                .toggleable(selected, enabled = enabled, role = Role.Switch, onValueChange = { toggle(type) }),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(typeLabel(type), Modifier.weight(1f))
-                Switch(checked = selected, onCheckedChange = null, enabled = enabled)
-            }
-        }
-        Text(stringResource(R.string.one_type_required), style = MaterialTheme.typography.bodySmall)
-    }
-}
-
 @Composable internal fun TypeInstructions(mask: Int, n: Int) {
     Text(pluralStringResource(R.plurals.type_instructions, n, n), style = MaterialTheme.typography.bodyLarge)
     for (type in activeTypes(mask)) Text(stringResource(when (type) {
@@ -85,17 +68,20 @@ internal object StimulusColours {
         StimulusType.NUMBER -> R.string.number_rule
     }))
     if (mask and StimulusType.COLOUR.bit != 0) Text(stringResource(R.string.colour_palette))
+}
+
+@Composable internal fun SessionExample(mask: Int, n: Int) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         for (i in 0..n) {
             val example = if (i == n) 0 else i
             Column(Modifier.weight(1f)) {
                 StimulusView(activeTypes(mask).associateWith { if (it == StimulusType.POSITION) example * 4 else example },
-                    mask, Modifier.fillMaxWidth().height(76.dp), "example_$i")
-                Text(if (i == n) "A" else ('A' + i).toString())
+                    mask, Modifier.fillMaxWidth().height(56.dp), "example_$i")
+                Text(if (i == n) "A" else ('A' + i).toString(), Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelSmall)
             }
         }
     }
-    Text(stringResource(R.string.example_types, ((0 until n).map { ('A' + it).toString() } + "A").joinToString(" → ")))
+    Text(stringResource(R.string.example_types, ((0 until n).map { ('A' + it).toString() } + "A").joinToString(" → ")), style = MaterialTheme.typography.bodySmall, color = Muted)
 }
 
 /** No changing stimulus semantics: the visual values are never automatically announced. */
@@ -119,8 +105,9 @@ internal object StimulusColours {
                 if (active) {
                     val foreground = StimulusColours.foreground(fill)
                     if (colour != null) drawRoundRect(Color.Black, offset, Size(cellSide, cellSide), radius, style = Stroke(2.dp.toPx()))
-                    val inset = 4.dp.toPx()
-                    drawRoundRect(foreground, offset + Offset(inset, inset), Size(cellSide - inset * 2, cellSide - inset * 2), radius, style = Stroke(2.dp.toPx()))
+                    // Keep the inset border from crowding digits in small Home examples.
+                    val inset = minOf(4.dp.toPx(), cellSide * 0.08f)
+                    drawRoundRect(foreground, offset + Offset(inset, inset), Size(cellSide - inset * 2, cellSide - inset * 2), radius, style = Stroke(minOf(2.dp.toPx(), cellSide * 0.06f)))
                     values[StimulusType.NUMBER]?.takeIf { mask and StimulusType.NUMBER.bit != 0 }?.let { number ->
                         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                             color = foreground.toArgb(); textAlign = Paint.Align.CENTER

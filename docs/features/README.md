@@ -10,6 +10,7 @@ and an updated specification in the same PR as the implementation.
 | F001 | [Visual session](F001-visual-session.md) | Agreed, 2026-09-20 |
 | F002 | [Session settings and guided practice](F002-practice-and-difficulty.md) | Agreed, 2026-09-21 |
 | F003 | [Results and local history](F003-results-and-history.md) | Agreed, 2026-09-21 |
+| F005 | [Guided Play design](F005-guided-design.md) | Agreed, design 3, 2026-09-21 |
 | F004 | [Stimulus types and independent responses](F004-stimulus-types-and-responses.md) | Agreed, including colour-only stimuli, 2026-09-21 |
 
 Use [the template](TEMPLATE.md). Agreement states are `Draft`, `Agreed`, and

@@ -59,7 +59,7 @@ class MultiTypeUiTest {
     }
     @Composable private fun TestContent() {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale.value)) {
-                MaterialTheme {
+                NBackTheme {
                     SessionContent(state.value,
                         { game.start(settings.value.level, modeMask = settings.value.modeMask); publish() }, {}, { game.home(); publish() }, settings.value,
                         onToggleType = { type ->

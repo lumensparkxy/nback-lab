@@ -62,3 +62,6 @@ when active and no colour-name cue during play. Sound
 remains a later feature. Delivery is tracked in issues #23 and #24.
 These additions remain outside the delivered initial visual-position scope.
 Do not add unavailable-mode controls to the current app.
+
+On 2026-09-21 the owner selected Guided Play (design 3) for the complete app.
+[F005](features/F005-guided-design.md) defines this presentation revision.
