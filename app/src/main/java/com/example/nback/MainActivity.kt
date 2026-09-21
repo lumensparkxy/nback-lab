@@ -12,7 +12,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModelProvider
 
 class MainActivity : ComponentActivity() {
-    internal val session: SessionViewModel by lazy { ViewModelProvider(this)[SessionViewModel::class.java] }
+    internal val session: SessionViewModel by lazy {
+        ViewModelProvider(this, object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                require(modelClass == SessionViewModel::class.java)
+                @Suppress("UNCHECKED_CAST")
+                return SessionViewModel(StoredLevelSettings.from(applicationContext)) as T
+            }
+        })[SessionViewModel::class.java]
+    }
     private val lifecycleHandler = Handler(Looper.getMainLooper())
     private var pendingPause: Runnable? = null
 

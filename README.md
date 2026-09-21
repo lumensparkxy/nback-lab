@@ -1,9 +1,9 @@
 # nback-lab
 
 An offline visual n-back Android app, developed through a portable, evidence-based
-agent coding harness. **Current implementation: fixed visual 2-back sessions.** Read the instructions,
-complete a 66-second session and inspect the four outcome counts and accuracy.
-Practice settings and saved history are not implemented yet.
+agent coding harness. **Current implementation: visual 1-, 2- and 3-back sessions with guided practice.**
+Choose a level, try optional explained examples, and complete a normal session.
+Your level is remembered locally; session results and practice are not saved.
 
 ## Start here
 

@@ -11,6 +11,9 @@ Complete a short visual position-matching session and understand the result.
 This first playable slice is not a validated cognitive assessment or a claim
 about health or intelligence improvement.
 
+[F002](F002-practice-and-difficulty.md) extends this baseline with selectable n
+and guided practice; its explicit overrides apply to the configurable delivery.
+
 ## Scope and exclusions
 
 One fixed 2-back level, instructions, a 3×3 grid, one Match button, a complete

@@ -19,7 +19,45 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class LaunchSmokeTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    private fun start() { compose.onNodeWithTag("start").performScrollTo().performClick() }
+    private fun start(level: Int = 2) {
+        compose.waitUntil(10_000) { !compose.activity.session.settings.loading }
+        compose.onNodeWithTag("level_$level").performScrollTo().performClick()
+        compose.onNodeWithTag("start").performScrollTo().performClick()
+    }
+
+    @Test fun realOneAndThreeBackSessionsCompleteAtTheirOwnLevels() {
+        for (level in listOf(1, 3)) {
+            start(level)
+            val model = compose.activity.session
+            assertEquals(level, model.state.config.level)
+            compose.waitUntil(80_000) { model.state.screen == SessionScreen.RESULTS }
+            compose.onNodeWithText("70% accuracy").assertIsDisplayed()
+            assertEquals(6, model.state.result!!.misses)
+            compose.onNodeWithTag("home").performScrollTo().performClick()
+        }
+    }
+
+    @Test fun practiceFeedbackSurvivesRotationButBackAndBackgroundInterrupt() {
+        compose.waitUntil(10_000) { !compose.activity.session.settings.loading }
+        compose.onNodeWithTag("level_1").performScrollTo().performClick()
+        compose.onNodeWithTag("practice").performScrollTo().performClick()
+        val model = compose.activity.session
+        compose.waitUntil(10_000) { model.state.screen == SessionScreen.PRACTICE_FEEDBACK }
+        val feedback = model.state.feedback
+        compose.activityRule.scenario.recreate()
+        compose.runOnIdle { assertSame(model, compose.activity.session); assertEquals(feedback, model.state.feedback) }
+        compose.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        compose.onNodeWithText("Practice interrupted").assertIsDisplayed()
+        compose.onNodeWithTag("restart").performClick()
+        compose.onNodeWithText("Warm-up 1/1").assertIsDisplayed()
+        compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        compose.onNodeWithText("Practice interrupted").assertIsDisplayed()
+        compose.onNodeWithTag("home").performClick()
+        compose.onNodeWithTag("practice").performScrollTo().performClick()
+        compose.onNodeWithTag("skip").performClick()
+        compose.onNodeWithTag("level_1").performScrollTo().assertIsDisplayed()
+    }
 
     @Test fun instructionsAndWarmupAreAccessible() {
         compose.onNodeWithText("Visual n-back").assertIsDisplayed()
