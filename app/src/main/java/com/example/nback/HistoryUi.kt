@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -33,6 +34,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -81,20 +83,38 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
     MultiResultSummary(mapOf(StimulusType.POSITION to result), level, completedAt, time)
 
 @Composable internal fun MultiResultSummary(results: Map<StimulusType, SessionResult>, level: Int, completedAt: Long?, time: HistoryTime) {
-    Text(modeTitle(results.keys.sumOf { it.bit }, level))
-    completedAt?.let { Text(time.format(it, detail = true), Modifier.testTag("completed_at")) }
+    var details by rememberSaveable(results, level, completedAt) { mutableStateOf(false) }
+    Text(modeTitle(results.keys.sumOf { it.bit }, level), style = MaterialTheme.typography.titleMedium)
+    completedAt?.let { Text(time.format(it, detail = true), Modifier.testTag("completed_at"), style = MaterialTheme.typography.bodySmall, color = Muted) }
     for ((type, result) in results) {
+        Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(typeLabel(type), Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.accuracy, result.accuracy), Modifier.weight(1f)
+                    .testTag(if (type == StimulusType.POSITION) "accuracy" else "accuracy_${type.bit}"),
+                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            }
+            Text(stringResource(R.string.hits_denominator, result.hits) + " · " + stringResource(R.string.outcome_count, stringResource(R.string.misses), result.misses), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.false_alarms_denominator, result.falseAlarms), style = MaterialTheme.typography.bodyMedium, color = Muted)
+        }
+    }
+    Text(stringResource(R.string.results_baseline), style = MaterialTheme.typography.bodyMedium, color = Muted)
+    val expandedLabel = stringResource(if (details) R.string.expanded else R.string.collapsed)
+    TextButton(onClick = { details = !details }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        .testTag("result_details").semantics { stateDescription = expandedLabel }) {
+        Text(stringResource(R.string.result_details), Modifier.weight(1f))
+        AppIcon(R.drawable.ic_expand_more)
+    }
+    if (details) for ((type, result) in results) {
         val label = typeLabel(type)
         Text(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Text(stringResource(R.string.accuracy, result.accuracy), style = MaterialTheme.typography.displayMedium,
-            fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag(if (type == StimulusType.POSITION) "accuracy" else "accuracy_${type.bit}"))
-        Text(stringResource(R.string.correct, result.correct), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.correct, result.correct), style = MaterialTheme.typography.titleMedium)
         ResultOutcome(stringResource(R.string.hits_denominator, result.hits), stringResource(R.string.type_hits_detail, label))
         ResultOutcome(stringResource(R.string.outcome_count, stringResource(R.string.misses), result.misses), stringResource(R.string.type_misses_detail, label))
         ResultOutcome(stringResource(R.string.false_alarms_denominator, result.falseAlarms), stringResource(R.string.type_false_detail, label))
         ResultOutcome(stringResource(R.string.outcome_count, stringResource(R.string.correct_rejections), result.correctRejections), stringResource(R.string.type_rejections_detail, label))
     }
-    Text(stringResource(R.string.results_baseline), style = MaterialTheme.typography.bodyMedium)
 }
 
 @Composable private fun ResultOutcome(label: String, detail: String) {
@@ -163,22 +183,28 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                     (navigation.modeFilter == 0 || it.modeMask == navigation.modeFilter) }
             }
             LazyColumn(modifier.testTag("history_list"), state = scroll, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                item(key = "heading") { PageTitle(stringResource(R.string.history)) }
-                item(key = "comparison") { Text(stringResource(R.string.history_comparison)) }
+                item(key = "heading") {
+                    Column {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            QuietButton(stringResource(R.string.back), session::back, "history_back")
+                            QuietButton(stringResource(R.string.home), session::home, "home")
+                        }
+                        PageTitle(stringResource(R.string.history))
+                    }
+                }
                 item(key = "filters") { HistoryFilters(navigation.filter, session::filterHistory) }
                 item(key = "modes") { ModeFilter(navigation.modeFilter, session::filterHistoryMode) }
+                item(key = "comparison") { Text(stringResource(R.string.history_comparison), style = MaterialTheme.typography.bodySmall, color = Muted) }
                 item(key = "unsaved") { UnsavedSummary(history) { session.history.retry() } }
                 item(key = "actions") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ActionButton(stringResource(R.string.clear_history), session::askClear, history.canClear, "clear_history")
+                        HistoryActions(history.canClear, session::askClear)
                         if (history.clearing) StatusText(stringResource(R.string.history_clearing))
                         if (history.clearFailed) {
                             StatusText(stringResource(R.string.history_clear_failed))
                             ActionButton(stringResource(R.string.retry), session::askClear, history.canClear, "retry_clear")
-                            ActionButton(stringResource(R.string.cancel), session.history::dismissClearFailure, tag = "cancel_clear_failure")
+                            QuietButton(stringResource(R.string.cancel), session.history::dismissClearFailure, "cancel_clear_failure")
                         }
-                        BackButton(session::back)
-                        HomeButton(session::home)
                     }
                 }
                 when (history.load) {
@@ -192,6 +218,7 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                         }
                         items(rows, key = { "session:${it.id}" }, contentType = { "result" }) { record ->
                             OutlinedButton(onClick = { session.openDetail(record.id) },
+                                shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("record_${record.id}")) {
                                 Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(time.format(record.completedAt))
@@ -227,17 +254,17 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
 }
 
 @Composable private fun HistoryFilters(selected: Int, select: (Int) -> Unit) {
-    val label = stringResource(R.string.history_filters)
-    Column(Modifier.selectableGroup().semantics { contentDescription = label }) {
-        Text(label, fontWeight = FontWeight.SemiBold)
-        for (pair in listOf(listOf(0, 1), listOf(2, 3))) Row(Modifier.fillMaxWidth()) {
-            pair.forEach { level ->
-                Row(Modifier.weight(1f).heightIn(min = 48.dp).testTag("filter_$level")
-                    .selectable(selected == level, role = Role.RadioButton, onClick = { select(level) }), verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected == level, onClick = null)
-                    Text(if (level == 0) stringResource(R.string.all_levels) else stringResource(R.string.level_option, level), Modifier.padding(start = 12.dp))
-                }
-            }
+    LevelChoices(selected, 0..3, select, "filter")
+}
+
+@Composable private fun HistoryActions(canClear: Boolean, clear: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Column {
+        QuietButton(stringResource(R.string.history_actions), { expanded = true }, "history_actions")
+        DropdownMenu(expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(text = { Text(stringResource(R.string.clear_history)) },
+                onClick = { expanded = false; clear() }, enabled = canClear,
+                modifier = Modifier.heightIn(min = 48.dp).testTag("clear_history"))
         }
     }
 }
@@ -250,7 +277,7 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
 }
 
 @Composable private fun BackButton(back: () -> Unit) {
-    ActionButton(stringResource(R.string.back), back, tag = "history_back")
+    QuietButton(stringResource(R.string.back), back, tag = "history_back")
 }
 
 @Composable private fun ModeFilter(selected: Int, select: (Int) -> Unit) {

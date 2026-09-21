@@ -43,8 +43,8 @@ class PracticeInteractionTest {
         compose.runOnIdle { settings.value = SettingsState(loading = false) }
         for (n in 1..3) {
             compose.onNodeWithTag("level_$n").performScrollTo().assertHeightIsAtLeast(48.dp).performClick().assertIsSelected()
-            compose.onNodeWithText("Position · $n-back").performScrollTo().assertIsDisplayed()
-            compose.onNodeWithText("$n warm-up ${if (n==1) "turn" else "turns"} · 20 scored turns · ${(n+20)*3} seconds", substring=true).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Look $n ${if (n == 1) "turn" else "turns"} back").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("$n warm-up · 20 scored turns · ${(n+20)*3} seconds", substring=true).performScrollTo().assertIsDisplayed()
         }
         compose.runOnIdle { settings.value = settings.value.copy(notice = SettingsNotice.SAVE_FAILED) }
         compose.onNodeWithTag("retry").performScrollTo().performClick()

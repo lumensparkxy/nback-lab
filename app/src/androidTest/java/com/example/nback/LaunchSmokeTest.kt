@@ -60,7 +60,7 @@ class LaunchSmokeTest {
     }
 
     @Test fun instructionsAndWarmupAreAccessible() {
-        compose.onNodeWithText("Visual n-back").assertIsDisplayed()
+        compose.onNodeWithText("Set up your next round").assertIsDisplayed()
         compose.onNodeWithTag("start").performScrollTo().assertIsDisplayed()
         start()
         compose.onNodeWithText("Warm-up 1/2").assertIsDisplayed()
@@ -118,7 +118,7 @@ class LaunchSmokeTest {
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("Session interrupted").assertIsDisplayed()
         compose.onNodeWithTag("home").performClick()
-        compose.onNodeWithText("Visual n-back").assertIsDisplayed()
+        compose.onNodeWithText("Set up your next round").assertIsDisplayed()
     }
 
     @Test fun realTimedSessionCompletesAndResultsSurviveRecreationAndBackground() {

@@ -29,6 +29,7 @@ class SessionViewModel(
     private val wallClock: () -> Long = System::currentTimeMillis,
     private val newId: () -> String = { UUID.randomUUID().toString() },
 ) : ViewModel() {
+    internal val homeUi = HomeUiState()
     var state by mutableStateOf(game.state)
         private set
     var settings by mutableStateOf(SettingsState())

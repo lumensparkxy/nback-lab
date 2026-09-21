@@ -49,24 +49,29 @@ class HistoryUiTest {
         compose.onNodeWithTag("history").performScrollTo().performClick()
         compose.waitUntil { history.state.load == HistoryLoad.READY }
     }
+    private fun openClearMenu() {
+        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_actions"))
+        compose.onNodeWithTag("history_actions").assertIsDisplayed().performClick()
+    }
     @Test fun emptyFiltersClearCancelAndGlobalClearRetainDifficulty() {
         launch(listOf(sampleRecord("a", 1), sampleRecord("b", 3)))
         open()
         compose.onNodeWithTag("filter_2").performScrollTo().performClick()
         compose.onNodeWithTag("history_list").performScrollToNode(hasText("No saved 2-back sessions yet"))
         compose.onNodeWithText("No saved 2-back sessions yet").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("clear_history").performScrollTo().performClick()
+        openClearMenu(); compose.onNodeWithTag("clear_history").assertIsDisplayed().performClick()
         compose.onNodeWithText("Clear all history?").assertIsDisplayed()
         compose.onNodeWithTag("cancel_clear").performClick()
         assertEquals(2, rows.records.size)
-        compose.onNodeWithTag("clear_history").performClick()
+        openClearMenu(); compose.onNodeWithTag("clear_history").assertIsDisplayed().performClick()
         compose.runOnIdle { model.back() }
         assertEquals(2, rows.records.size)
-        compose.onNodeWithTag("clear_history").performClick()
+        openClearMenu(); compose.onNodeWithTag("clear_history").assertIsDisplayed().performClick()
         compose.onNodeWithTag("confirm_clear").performClick()
         compose.waitUntil { history.state.records.isEmpty() }
         assertTrue(rows.records.isEmpty()); assertEquals(3, model.settings.level)
-        compose.onNodeWithTag("clear_history").assertIsNotEnabled()
+        openClearMenu(); compose.onNodeWithTag("clear_history").assertIsNotEnabled()
+        compose.onNodeWithTag("clear_history").performKeyInput { pressKey(androidx.compose.ui.input.key.Key.Escape) }
         compose.onNodeWithTag("home").performScrollTo().performClick()
         open(); compose.onNodeWithTag("filter_0").assertIsSelected()
         compose.onNodeWithTag("history_list").performScrollToNode(hasText("No saved sessions yet"))
@@ -76,9 +81,9 @@ class HistoryUiTest {
         launch((0 until 10_000).map { sampleRecord("r$it", it % 3 + 1, 1_750_000_000_000L + it) })
         open()
         compose.onNodeWithTag("filter_3").performScrollTo().performClick()
-        compose.onNodeWithTag("history_list").performScrollToIndex(106)
+        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("record_r9698"))
         compose.onNodeWithTag("record_r9698").performClick()
-        compose.onNodeWithText("Hits: 4 of 6").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Hits: 4 of 6 · Misses: 2").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("False alarms: 3 of 14").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Accuracy includes correctly waiting on non-matches. Not tapping at all gives 70% accuracy, so check hits and misses too.").performScrollTo().assertIsDisplayed()
         compose.runOnIdle { model.back() }
@@ -87,7 +92,7 @@ class HistoryUiTest {
         assertTrue(model.historyNavigation.scrollIndex >= 100)
         compose.onNodeWithTag("history_list").performScrollToIndex(0)
         compose.onNodeWithTag("filter_0").performClick()
-        compose.onNodeWithTag("history_list").performScrollToIndex(10005)
+        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("record_r0"))
         compose.onNodeWithTag("record_r0").assertIsDisplayed()
         compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().let { assertTrue("Lazy list must not compose 10000 rows", it.size < 100) }
     }
@@ -106,7 +111,7 @@ class HistoryUiTest {
         compose.onNodeWithTag("record_position").assertDoesNotExist()
         compose.onNodeWithTag("record_triple").assertDoesNotExist()
         compose.onNodeWithTag("record_other-level").assertDoesNotExist()
-        compose.onNodeWithTag("clear_history").performScrollTo().performClick()
+        openClearMenu(); compose.onNodeWithTag("clear_history").assertIsDisplayed().performClick()
         compose.onNodeWithTag("confirm_clear").performClick()
         compose.waitUntil { rows.records.isEmpty() }
         compose.onNodeWithTag("home").performScrollTo().performClick(); open()
@@ -117,7 +122,8 @@ class HistoryUiTest {
         open()
         compose.runOnIdle { readFailure = true; history.reload() }
         compose.waitUntil { history.state.load == HistoryLoad.FAILED }
-        compose.onNodeWithTag("clear_history").performScrollTo().assertIsNotEnabled()
+        openClearMenu(); compose.onNodeWithTag("clear_history").assertIsNotEnabled()
+        compose.onNodeWithTag("clear_history").performKeyInput { pressKey(androidx.compose.ui.input.key.Key.Escape) }
         compose.onNodeWithTag("record_one").assertDoesNotExist()
         compose.onNodeWithTag("history_list").performScrollToNode(hasText("Couldn’t load history."))
         compose.onNodeWithText("Couldn’t load history.").performScrollTo().assertIsDisplayed()
@@ -140,7 +146,7 @@ class HistoryUiTest {
         compose.waitUntil { history.state.entries["one"]?.status == SaveStatus.SAVED }
         open()
         compose.runOnIdle { clearFailure = true }
-        compose.onNodeWithTag("clear_history").performScrollTo().performClick()
+        openClearMenu(); compose.onNodeWithTag("clear_history").assertIsDisplayed().performClick()
         compose.onNodeWithTag("confirm_clear").performClick()
         compose.waitUntil { history.state.clearFailed }
         compose.onNodeWithText("Couldn’t clear history").performScrollTo().assertIsDisplayed()

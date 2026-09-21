@@ -87,12 +87,14 @@ class HistoryLifecycleTest {
         compose.onNodeWithText("75% accuracy").assertIsDisplayed()
         compose.runOnIdle { assertSame(model, compose.activity.session); assertEquals(record.id, model.historyNavigation.detailId) }
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-        compose.onNodeWithTag("clear_history").performScrollTo().performClick()
+        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_actions"))
+        compose.onNodeWithTag("history_actions").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("clear_history").assertIsDisplayed().performClick()
         compose.activityRule.scenario.recreate()
         compose.onNodeWithText("Clear all history?").assertIsDisplayed()
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("Clear all history?").assertDoesNotExist()
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-        compose.onNodeWithText("Visual n-back").assertIsDisplayed()
+        compose.onNodeWithText("Set up your next round").assertIsDisplayed()
     }
 }

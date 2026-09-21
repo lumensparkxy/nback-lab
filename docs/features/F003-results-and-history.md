@@ -237,3 +237,9 @@ save/clear/failure semantics and Room storage. The owner authorized merging the
 specification and implementing issue #5. The implementation requires validation
 and separate owner authorization for its delivery merge. Issue #5 remains the
 delivery owner and cannot close as shipped when this specification merges.
+
+## Presentation amendment
+
+[F005](F005-guided-design.md) revises setup, optional instructions, result detail
+and history control presentation. The gameplay and persistence contracts above
+remain unchanged.
