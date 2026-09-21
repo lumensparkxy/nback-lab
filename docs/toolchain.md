@@ -61,6 +61,39 @@ Reports: `engine/build/reports/tests/test/`, `app/build/reports/lint-results-deb
 `app/build/reports/androidTests/connected/`. APK: `app/build/outputs/apk/debug/app-debug.apk`.
 Temporary logs/screenshots belong in ignored `artifacts/` or CI artifacts.
 
+### Emulator deadlines and diagnostics
+
+The two emulator commands require Python 3.11+ and an explicit `ANDROID_SERIAL`.
+They check device state, emulator identity and ActivityManager responsiveness
+before building or installing. No physical-device fallback is allowed.
+
+| Environment setting | Default seconds | Applies to |
+| --- | --- | --- |
+| `NBACK_ADB_TIMEOUT_SECONDS` | 10 | Each of the three health probes |
+| `NBACK_GRADLE_TIMEOUT_SECONDS` | 1200 | Build or connected test command |
+| `NBACK_INSTALL_TIMEOUT_SECONDS` | 120 | Debug APK installation |
+| `NBACK_LAUNCH_TIMEOUT_SECONDS` | 30 | Activity launch |
+
+Overrides must be positive finite numbers; invalid settings fail before device
+actions. Defaults leave headroom inside CI's existing 30-minute job deadline.
+Extra arguments to `emulator-test.sh` still reach Gradle as separate arguments.
+Build/install/launch output streams normally. Exit 124 means timeout; ordinary
+command failures remain nonzero; SIGINT/SIGTERM return 130/143 respectively.
+
+Each invocation writes a unique JSON summary under `artifacts/emulator-operations/`
+with serial, Git revision (or unavailable), fixed operation names, deadlines,
+elapsed times and outcomes. It excludes raw extra arguments, environment values,
+logcat, UI dumps and app data. These summaries are included in CI Android evidence.
+A failed summary write warns without hiding an operation failure.
+
+On timeout or interruption, the wrapper terminates only the client process it
+started, allows five seconds to exit, then kills that client if needed (up to two
+seconds more to reap it). It never signals process groups, stops shared ADB/Gradle
+services, or reboots, wipes or shuts down an emulator. A detached daemon or
+device-side instrumentation may outlive client cancellation. Inspect the record
+and target health before retrying; do not assume timeout cancelled all device work.
+Local Git revision lookup is separately bounded to three seconds.
+
 The engine includes gameplay tests and a deliberately skipped harness failure probe.
 Its negative-control script enables a real assertion failure and verifies the
 JUnit report, so dependency/network/build errors cannot masquerade as success.
