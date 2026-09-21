@@ -1,8 +1,9 @@
 # nback-lab
 
 An offline visual n-back Android app, developed through a portable, evidence-based
-agent coding harness. **Current implementation: launchable app shell only.** Game
-sessions, scoring and history are not implemented yet.
+agent coding harness. **Current implementation: fixed visual 2-back sessions.** Read the instructions,
+complete a 66-second session and inspect the four outcome counts and accuracy.
+Practice settings and saved history are not implemented yet.
 
 ## Start here
 
@@ -41,7 +42,7 @@ macOS/Linux SDK locations or respect `JAVA_HOME` and `ANDROID_HOME`.
 | Path | Responsibility |
 | --- | --- |
 | `app/` | Android lifecycle, Compose UI, future persistence adapters |
-| `engine/` | Pure Kotlin game engine boundary; currently only a harness failure probe |
+| `engine/` | Pure Kotlin sequence generation, elapsed-time session state and scoring |
 | `docs/features/` | Canonical feature behavior and acceptance criteria |
 | `docs/decisions/` | Accepted and proposed architectural decisions |
 | `scripts/` | Portable local and CI commands |
