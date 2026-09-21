@@ -94,7 +94,9 @@ internal fun SessionContent(
 ) {
     Scaffold(containerColor = Paper) { insets ->
         BoxWithConstraints(Modifier.fillMaxSize().padding(insets)) {
-            val sidePadding = if (state.screen == SessionScreen.PLAYING && maxWidth < 360.dp) 8.dp else 24.dp
+            val sidePadding = if (state.screen == SessionScreen.PLAYING && maxWidth < 360.dp) {
+                if (LocalDensity.current.fontScale >= 1.8f) 4.dp else 8.dp
+            } else 24.dp
             Box(Modifier.fillMaxSize().padding(horizontal = sidePadding, vertical = 16.dp)) {
                 when (state.screen) {
                     SessionScreen.HOME -> Instructions(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType)
@@ -174,7 +176,7 @@ private fun Progress(state: SessionState, compact: Boolean = false) {
 @Composable
 private fun ResponseControls(state: SessionState, onMatch: (StimulusType) -> Unit, compact: Boolean) {
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        val gap = if (maxWidth < 300.dp) 4.dp else 8.dp
+        val gap = if (maxWidth < 360.dp) 4.dp else 8.dp
         val buttonWidth = 112.dp * LocalDensity.current.fontScale
         Row(Modifier.widthIn(max = buttonWidth * state.config.types.size + gap * (state.config.types.size - 1))
             .fillMaxWidth().height(IntrinsicSize.Min).testTag("response_row"),
@@ -196,7 +198,8 @@ private fun TypeResponseControl(state: SessionState, type: StimulusType, onMatch
             .testTag(if (type == StimulusType.POSITION) "match" else "match_${type.bit}")
             .semantics { contentDescription = label; stateDescription = status },
         shape = RoundedCornerShape(16.dp),
-        contentPadding = PaddingValues(horizontal = 2.dp, vertical = if (compact) 8.dp else 12.dp),
+        contentPadding = PaddingValues(horizontal = if (LocalDensity.current.fontScale >= 1.8f) 0.dp else 2.dp,
+            vertical = if (compact) 8.dp else 12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Ink, contentColor = Color.White,
             disabledContainerColor = Cell, disabledContentColor = Muted)) {
         Column(Modifier.fillMaxWidth().clearAndSetSemantics {}, horizontalAlignment = Alignment.CenterHorizontally,
