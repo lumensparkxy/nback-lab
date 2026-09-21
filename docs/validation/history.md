@@ -42,7 +42,20 @@ A completed normal 1-back session showed the four counts, baseline explanation
 and committed save status. Process restart returned Home with its selected level
 and the same saved row. Portrait/detail/history and 200% text checks passed;
 landscape revealed a clipped confirmation explanation, now made scrollable with
-a dedicated lifecycle regression. Independent rereview accepted that fix.
+a dedicated lifecycle regression. Rendered recheck reached the end of the full
+explanation with both buttons visible. Independent rereview accepted that fix.
+
+With TalkBack bound, keyboard focus/activation reached Home→History, difficulty
+filters, saved detail and the clear confirmation; system Back cancelled it.
+Screenshots captured accessibility focus. No UiAutomator dump ran while TalkBack
+was enabled. This verifies control navigation and labels/semantics, not a human
+spoken-output or nonvisual-gameplay audit. Font, rotation and accessibility
+settings were restored. Force-stopping a partial normal session returned to Home
+without adding a record; the earlier committed row remained.
+
+The added coroutine clear regression initially inferred a Boolean return, which
+JUnit rejected. Explicit `runBlocking<Unit>` fixes the runner signature with all
+assertions unchanged; the test-only diff also received independent review.
 
 Final current-head emulator results, rendered rechecks and hosted CI are recorded
 in the implementation PR linked from issue #5. This record alone does not imply
