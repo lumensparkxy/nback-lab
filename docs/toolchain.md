@@ -6,7 +6,7 @@
 | --- | --- |
 | JDK used to run Gradle | 25 (CI: Temurin; Android Studio JBR 25 works locally) |
 | Java/Kotlin bytecode target | 17 |
-| Gradle wrapper | 9.7.0, distribution SHA-256 pinned |
+| Gradle wrapper | 9.7.1, distribution SHA-256 pinned |
 | Android Gradle Plugin | 9.4.1, built-in Kotlin |
 | Kotlin JVM/Compose plugins | 2.4.20 |
 | Compose BOM | 2026.09.00 |
