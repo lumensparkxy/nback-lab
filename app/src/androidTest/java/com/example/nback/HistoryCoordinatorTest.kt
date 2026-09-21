@@ -213,7 +213,7 @@ class HistoryCoordinatorTest {
                 }
                 await { history.state.records.size == 1 }
                 val record = main { history.state.records.single() }
-                assertEquals(mask, record.modeMask); assertEquals(2, record.rulesVersion); assertEquals(1, store.saves)
+                assertEquals(mask, record.modeMask); assertEquals(3, record.rulesVersion); assertEquals(1, store.saves)
                 val expected = activeTypes(mask).associateWith { type -> when (type) {
                     StimulusType.POSITION -> SessionResult(6, 0, 0, 14)
                     StimulusType.COLOUR -> SessionResult(0, 6, 0, 14)

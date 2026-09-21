@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.nback.engine.StimulusType
 import com.example.nback.engine.SessionScreen
 import org.junit.Assert.*
 import org.junit.Rule
@@ -19,6 +20,29 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class LaunchSmokeTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
+    private var original: SettingsState? = null
+    @org.junit.Before fun useExplicitBaselineConfiguration() {
+        val model = compose.activity.session
+        compose.waitUntil(10000) { !model.settings.loading }
+        original = model.settings
+        compose.runOnIdle {
+            model.home(); model.selectInterval(3)
+            if (model.settings.modeMask and 1 == 0) model.toggleType(StimulusType.POSITION)
+            StimulusType.entries.filter { it != StimulusType.POSITION && model.settings.modeMask and it.bit != 0 }.forEach(model::toggleType)
+        }
+        compose.waitUntil(10000) { !model.settings.saving }
+    }
+    @org.junit.After fun restoreConfiguration() {
+        val saved = original ?: return
+        val model = compose.activity.session
+        compose.runOnIdle {
+            model.home(); model.selectLevel(saved.level); model.selectInterval(saved.intervalSeconds)
+            StimulusType.entries.filter { saved.modeMask and it.bit != 0 && model.settings.modeMask and it.bit == 0 }.forEach(model::toggleType)
+            StimulusType.entries.filter { saved.modeMask and it.bit == 0 && model.settings.modeMask and it.bit != 0 }.forEach(model::toggleType)
+        }
+        compose.waitUntil(10000) { !model.settings.saving }
+        compose.runOnIdle { assertNotEquals(SettingsNotice.SAVE_FAILED, model.settings.notice) }
+    }
     private fun start(level: Int = 2) {
         compose.waitUntil(10_000) { !compose.activity.session.settings.loading }
         compose.onNodeWithTag("level_$level").performScrollTo().performClick()
