@@ -38,6 +38,7 @@ class HistoryLifecycleTest {
             }
             compose.runOnIdle { model.askClear() }
             compose.onNodeWithTag("confirm_clear").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+            compose.onNodeWithTag("clear_explanation").assertHeightIsAtLeast(96.dp)
             capture("history-clear-before-scroll")
             compose.onNodeWithTag("clear_explanation").performTouchInput { swipeUp() }
             val range = compose.onNodeWithTag("clear_explanation").fetchSemanticsNode().config[

@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.example.nback.engine.SessionResult
 import com.example.nback.engine.StimulusType
 import java.time.Instant
@@ -130,6 +131,7 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
 }
 
 @Composable internal fun HistoryScreen(session: SessionViewModel, time: HistoryTime) {
+    val landscape = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     val navigation = session.historyNavigation
     val history = session.history.state
     Scaffold { insets ->
@@ -207,6 +209,8 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
     }
     if (navigation.confirmClear) AlertDialog(
         onDismissRequest = session::cancelClear,
+        properties = DialogProperties(usePlatformDefaultWidth = !landscape),
+        modifier = if (landscape) Modifier.fillMaxWidth().padding(horizontal = 24.dp) else Modifier,
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()).testTag("clear_explanation"),
                 verticalArrangement = Arrangement.spacedBy(16.dp)) {
