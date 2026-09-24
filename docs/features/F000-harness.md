@@ -29,7 +29,7 @@ selected emulator. Reports distinguish local checks, hosted CI and branch rules.
 | AC-03 | App launches and survives activity recreation | `LaunchSmokeTest` on emulator; inspect rendered screen |
 | AC-04 | A real failed test cannot be mistaken for a passing build | `scripts/test-failure-gate.sh` verifies exit status and exact JUnit failure |
 | AC-05 | Portable role boundaries and Codex role files agree | Independent review, TOML checks; fresh Codex role-loading check separately recorded |
-| AC-06 | CI runs build/lint/JVM checks and emulator smoke tests | Hosted `quality` and `android-ui` job results after remote activation |
+| AC-06 | CI runs build/lint/JVM checks and emulator smoke tests | Hosted `quality` and `android-ui` job results; routine CI uses the critical selection in [development](../development.md#ci-coverage-and-speed), with full Android validation before releases |
 | AC-07 | Main branch requires successful checks and owner-controlled merge | Inspect GitHub branch/ruleset settings after activation |
 | AC-08 | Initial work is represented by linked GitHub issues | Create issues from reviewed local drafts after remote activation |
 

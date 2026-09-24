@@ -113,6 +113,35 @@ project work, check pending closeout runs and record meaningful failures or comp
 Keep this contract tool-neutral. Optional provider configuration or personal merge
 skills may implement it; a fresh clone must be sufficient to discover the rules.
 
+## CI coverage and speed
+
+Pull requests and pushes to `main` run all harness/JVM tests, lint, debug builds,
+the failure-gate probe, and a 20-test critical Android selection. The required
+`gate` still requires both `quality` and `android-ui` to succeed. Selection lives
+in `scripts/ci_android_tests.py`; CI verifies every selected test actually passed
+using fresh JUnit reports, so an empty or partial run cannot produce a green gate.
+
+The selection protects launch/warm-up, a real timed session and results,
+independent responses, practice, rotation/interruption, preferences, completed
+session persistence, clear ordering, database corruption and both history migrations.
+All engine tests remain because they cheaply cover scoring/timing across levels
+and all seven modes. The remaining Android tests stay in the repository; broader
+layout/accessibility combinations, repeated timed sessions and additional error
+cases are deferred from routine CI. This accepts later detection for regressions
+covered only by those tests.
+
+Run the complete suite with **Actions → CI → Run workflow → android-suite: full**
+on the intended branch, or locally with `ANDROID_SERIAL=emulator-... ./scripts/emulator-test.sh`.
+A full run is required before a release. Feature PRs must still run relevant
+acceptance tests locally, including tests outside the critical selection; the fast
+CI selection does not replace feature-specific evidence. Review the selection
+when adding features, especially persistence, migrations or privacy behavior.
+
+To reproduce the fast selection locally:
+`ANDROID_SERIAL=emulator-... python3 scripts/ci_android_tests.py critical`.
+`./scripts/verify.sh` remains the complete non-device check. No nightly job is
+created. Optimized release builds are a separate cost and are not changed here.
+
 ## Definition of done
 
 - Agreed acceptance criteria are satisfied, with traceable evidence.
