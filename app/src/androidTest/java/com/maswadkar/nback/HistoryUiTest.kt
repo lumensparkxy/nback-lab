@@ -53,7 +53,7 @@ class HistoryUiTest {
         compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_actions"))
         compose.onNodeWithTag("history_actions").assertIsDisplayed().performClick()
     }
-    @Test fun emptyFiltersClearCancelAndGlobalClearRetainDifficulty() {
+    @CriticalCi @Test fun emptyFiltersClearCancelAndGlobalClearRetainDifficulty() {
         launch(listOf(sampleRecord("a", 1), sampleRecord("b", 3)))
         open()
         compose.onNodeWithTag("filter_2").performScrollTo().performClick()

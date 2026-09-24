@@ -24,7 +24,7 @@ class RoomHistoryTest {
     private suspend fun fails(block: suspend () -> Unit) {
         try { block(); fail("Expected storage failure") } catch (_: Exception) { /* expected */ }
     }
-    @Test fun creationReopenOrderingIdenticalRetryConflictAndAtomicClear() = runBlocking {
+    @CriticalCi @Test fun creationReopenOrderingIdenticalRetryConflictAndAtomicClear() = runBlocking {
         val file = file(); var store = RoomHistoryStore(context, file)
         try {
             assertTrue(store.load().isEmpty())
@@ -58,7 +58,7 @@ class RoomHistoryTest {
             assertArrayEquals(bytes, file.readBytes())
         } finally { store.close(); file.parentFile!!.deleteRecursively() }
     }
-    @Test fun corruptTruncatedEmptyAndIncompatibleStoresArePreservedAcrossEveryRetry() = runBlocking {
+    @CriticalCi @Test fun corruptTruncatedEmptyAndIncompatibleStoresArePreservedAcrossEveryRetry() = runBlocking {
         for (kind in listOf("random", "empty", "truncated", "version", "identity", "columns")) {
             val file = file(); val store = RoomHistoryStore(context, file)
             try {

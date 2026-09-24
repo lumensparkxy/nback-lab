@@ -58,7 +58,7 @@ def main():
     expected = [PREFIX + test for test in CRITICAL]
     command = [str(ROOT / 'scripts/emulator-test.sh')]
     if args.suite == 'critical':
-        command.append('-Pandroid.testInstrumentationRunnerArguments.class=' + ','.join(expected))
+        command.append('-Pandroid.testInstrumentationRunnerArguments.annotation=' + PREFIX + 'CriticalCi')
     reports = ROOT / 'app/build/outputs/androidTest-results/connected'
     before = report_signatures(reports)
     result = subprocess.run(command, cwd=ROOT)

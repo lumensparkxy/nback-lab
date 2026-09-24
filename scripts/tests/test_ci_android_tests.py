@@ -2,6 +2,8 @@
 from pathlib import Path
 import importlib.util
 import tempfile
+import re
+from unittest.mock import patch
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -16,7 +18,11 @@ class CriticalSuiteTest(unittest.TestCase):
         for selector in ci.CRITICAL:
             cls, method = selector.split('#')
             source = (ROOT / f'app/src/androidTest/java/com/maswadkar/nback/{cls}.kt').read_text()
-            self.assertIn(f'@Test fun {method}(', source, selector)
+            self.assertIn(f'@CriticalCi @Test fun {method}(', source, selector)
+        annotated = {f'{p.stem}#{method}'
+                     for p in (ROOT / 'app/src/androidTest/java/com/maswadkar/nback').glob('*Test.kt')
+                     for method in re.findall(r'@CriticalCi\s+@Test fun (\w+)\(', p.read_text())}
+        self.assertEqual(annotated, set(ci.CRITICAL))
 
     def report(self, body):
         temporary = tempfile.TemporaryDirectory()
@@ -47,3 +53,17 @@ class CriticalSuiteTest(unittest.TestCase):
         fresh = [p for p, stamp in ci.report_signatures(path.parent).items() if before.get(p) != stamp]
         with self.assertRaises(ValueError):
             ci.check_reports(fresh, ['Example#one'])
+
+    def test_modes_forward_annotation_only_for_critical_and_preserve_failure(self):
+        for mode in ('critical', 'full'):
+            with patch.object(ci.sys, 'argv', ['ci_android_tests.py', mode]), \
+                 patch.object(ci.subprocess, 'run') as run, \
+                 patch.object(ci, 'check_reports') as reports:
+                run.return_value.returncode = 7
+                self.assertEqual(ci.main(), 7)
+                command = run.call_args.args[0]
+                self.assertEqual(command[0], str(ROOT / 'scripts/emulator-test.sh'))
+                self.assertEqual(command[1:], [
+                    '-Pandroid.testInstrumentationRunnerArguments.annotation=com.maswadkar.nback.CriticalCi'
+                ] if mode == 'critical' else [])
+                reports.assert_not_called()

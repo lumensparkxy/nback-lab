@@ -29,7 +29,7 @@ class IntervalStorageTest {
     private suspend fun fails(block: suspend () -> Unit) {
         try { block(); fail("Expected rejection") } catch (_: Exception) { }
     }
-    @Test fun v2MigrationPreservesOriginalFieldsAndNewTimelinesRoundTrip() = runBlocking {
+    @CriticalCi @Test fun v2MigrationPreservesOriginalFieldsAndNewTimelinesRoundTrip() = runBlocking {
         val file = file(); val store = RoomHistoryStore(context, file)
         try {
             sql(file, "CREATE TABLE sessions (id TEXT NOT NULL PRIMARY KEY, completedAt INTEGER NOT NULL, level INTEGER NOT NULL, rulesVersion INTEGER NOT NULL, hits INTEGER NOT NULL, misses INTEGER NOT NULL, falseAlarms INTEGER NOT NULL, correctRejections INTEGER NOT NULL)",
@@ -72,7 +72,7 @@ class IntervalStorageTest {
             } finally { store.close(); file.parentFile!!.deleteRecursively() }
         }
     }
-    @Test fun intervalPreferencesRoundTripAndInvalidFieldDoesNotResetLevelOrTypes() = runBlocking {
+    @CriticalCi @Test fun intervalPreferencesRoundTripAndInvalidFieldDoesNotResetLevelOrTypes() = runBlocking {
         val file = File(context.cacheDir, "pace-settings-${System.nanoTime()}.preferences_pb")
         val job = SupervisorJob()
         try {

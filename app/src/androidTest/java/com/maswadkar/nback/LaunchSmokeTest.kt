@@ -83,7 +83,7 @@ class LaunchSmokeTest {
         compose.onNodeWithTag("level_1").performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun instructionsAndWarmupAreAccessible() {
+    @CriticalCi @Test fun instructionsAndWarmupAreAccessible() {
         compose.onNodeWithText("Set up your next round").assertIsDisplayed()
         compose.onNodeWithTag("start").performScrollTo().assertIsDisplayed()
         start()
@@ -127,7 +127,7 @@ class LaunchSmokeTest {
         compose.activityRule.scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
     }
 
-    @Test fun pauseWithoutStopInterruptsAndRestartBeginsWarmup() {
+    @CriticalCi @Test fun pauseWithoutStopInterruptsAndRestartBeginsWarmup() {
         start()
         compose.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
         compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
@@ -145,7 +145,7 @@ class LaunchSmokeTest {
         compose.onNodeWithText("Set up your next round").assertIsDisplayed()
     }
 
-    @Test fun realTimedSessionCompletesAndResultsSurviveRecreationAndBackground() {
+    @CriticalCi @Test fun realTimedSessionCompletesAndResultsSurviveRecreationAndBackground() {
         start()
         val retained = compose.activity.session
         compose.waitUntil(72_000) { retained.state.screen == SessionScreen.RESULTS }

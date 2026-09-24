@@ -118,7 +118,7 @@ skills may implement it; a fresh clone must be sufficient to discover the rules.
 Pull requests and pushes to `main` run all harness/JVM tests, lint, debug builds,
 the failure-gate probe, and a 20-test critical Android selection. The required
 `gate` still requires both `quality` and `android-ui` to succeed. Selection lives
-in `scripts/ci_android_tests.py`; CI verifies every selected test actually passed
+in `scripts/ci_android_tests.py`, paired with `@CriticalCi` annotations; CI verifies every selected test actually passed
 using fresh JUnit reports, so an empty or partial run cannot produce a green gate.
 
 The selection protects launch/warm-up, a real timed session and results,

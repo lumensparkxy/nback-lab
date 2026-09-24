@@ -57,7 +57,7 @@ class SessionInteractionTest {
         assertEquals("Acknowledgement must not move grid", promptBounds, recordedBounds)
     }
 
-    @Test fun warmupNeutralFeedbackDuplicateInputAndNewTrial() {
+    @CriticalCi @Test fun warmupNeutralFeedbackDuplicateInputAndNewTrial() {
         compose.onNodeWithTag("start").performScrollTo().performClick()
         compose.onNodeWithTag("match").assertIsNotEnabled()
         at(6_000)
@@ -73,7 +73,7 @@ class SessionInteractionTest {
         assertEquals(0, game.state.result!!.falseAlarms)
     }
 
-    @Test fun holdingDoesNotRespondOrRepeatAndReleaseBelongsToNewTrial() {
+    @CriticalCi @Test fun holdingDoesNotRespondOrRepeatAndReleaseBelongsToNewTrial() {
         compose.onNodeWithTag("start").performScrollTo().performClick()
         at(8_999)
         compose.onNodeWithTag("match").performTouchInput { down(center) }
