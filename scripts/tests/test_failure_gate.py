@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-REPORT = 'engine/build/test-results/test/TEST-com.example.nback.engine.HarnessFailureProbeTest.xml'
+REPORT = 'engine/build/test-results/test/TEST-com.maswadkar.nback.engine.HarnessFailureProbeTest.xml'
 
 
 class FailureGateTest(unittest.TestCase):

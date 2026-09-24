@@ -48,3 +48,12 @@ No new runtime dependencies or persistence layer are needed for this slice.
 References: [ViewModel lifetime](https://developer.android.com/topic/libraries/architecture/viewmodel),
 [Compose testing](https://developer.android.com/develop/ui/compose/testing/apis),
 [accessibility verification](https://developer.android.com/develop/ui/compose/accessibility/testing).
+
+## Application identity — 2026-09-24
+
+The owner selected `com.maswadkar.nback` as the application ID and namespace.
+App and engine source packages, instrumentation tests, schema-export paths and
+local launch/test helpers use the same prefix. This replaces the temporary
+`com.example.nback` identity before distribution; it does not migrate data from
+an installation of that separate development package. Signing and publishing
+remain separate owner decisions.
