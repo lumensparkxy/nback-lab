@@ -151,7 +151,7 @@ def main(arguments):
         else:
             runner.run('assemble-debug', gradle + [':app:assembleDebug'], limits['GRADLE'])
             runner.run('install-debug', adb + ['install', '-r', 'app/build/outputs/apk/debug/app-debug.apk'], limits['INSTALL'])
-            runner.run('launch-debug', adb + ['shell', 'am', 'start', '-W', '-n', 'com.example.nback/.MainActivity'], limits['LAUNCH'])
+            runner.run('launch-debug', adb + ['shell', 'am', 'start', '-W', '-n', 'com.maswadkar.nback/.MainActivity'], limits['LAUNCH'])
         code = 0
     except OperationFailure as error:
         code = error.code

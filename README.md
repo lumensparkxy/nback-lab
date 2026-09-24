@@ -62,5 +62,7 @@ GitHub issues own task status and priority. Feature docs own behavior. The harne
 can be used by any agent that follows [AGENTS.md](AGENTS.md) and runs the shared
 commands. No external AI API key is needed by the app or build.
 
-The development application ID is `com.example.nback`; an owned ID and license
-must be chosen before distribution. No open-source license has been selected.
+The application ID and namespace are `com.maswadkar.nback`. This identity was
+selected before distribution; installations of the former `com.example.nback`
+development app remain separate, including their local data. No open-source
+license has been selected.

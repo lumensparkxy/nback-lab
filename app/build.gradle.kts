@@ -8,13 +8,13 @@ plugins {
 room { schemaDirectory("$projectDir/schemas") }
 
 android {
-    namespace = "com.example.nback"
+    namespace = "com.maswadkar.nback"
     compileSdk = 37
     buildToolsVersion = "36.0.0"
 
     defaultConfig {
-        // Development identifier; choose an owned identifier before distribution.
-        applicationId = "com.example.nback"
+        // Owner-selected application identity; keep stable after distribution.
+        applicationId = "com.maswadkar.nback"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
