@@ -64,7 +64,10 @@ import com.maswadkar.nback.engine.SessionState
 internal fun NBackApp(session: SessionViewModel) {
     val state = session.state
     val activity = LocalActivity.current as? MainActivity
-    SideEffect { activity?.keepScreenAwake(state.screen == SessionScreen.PLAYING) }
+    val privacyRevision = activity?.adsRuntime?.revision
+    SideEffect {
+        privacyRevision?.let { activity.adSurface.service() }
+        activity?.keepScreenAwake(state.screen == SessionScreen.PLAYING) }
     DisposableEffect(activity) { onDispose { activity?.keepScreenAwake(false) } }
     NBackTheme {
         val time = historyTime(session.formatRevision)
@@ -72,7 +75,8 @@ internal fun NBackApp(session: SessionViewModel) {
         else SessionContent(state, session::start, { session.match() }, session::home, session.settings,
             session::selectLevel, session::practice, session::nextExample, session::retrySave,
             session.history.state, session.resultId, time, session::openHistory,
-            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match, session.homeUi, session::selectInterval)
+            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match, session.homeUi, session::selectInterval,
+            onResultsHome = { if (activity != null) activity.resultsHome() else session.home() })
     }
 }
 
@@ -85,6 +89,7 @@ internal fun SessionContent(
     onHistory: () -> Unit = {}, onRetryResult: () -> Unit = {}, onRetryAll: () -> Unit = {},
     onToggleType: (StimulusType) -> Unit = {}, onTypeMatch: (StimulusType) -> Unit = { onMatch() },
     homeUi: HomeUiState = remember { HomeUiState() }, onInterval: (Int) -> Unit = {},
+    onResultsHome: () -> Unit = onHome,
 ) {
     Scaffold(containerColor = Paper) { insets ->
         BoxWithConstraints(Modifier.fillMaxSize().padding(insets)) {
@@ -96,7 +101,7 @@ internal fun SessionContent(
                     SessionScreen.HOME -> GuidedHome(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType, homeUi, onInterval)
                     SessionScreen.PLAYING -> Playing(state, onTypeMatch, onHome)
                     SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
-                    SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
+                    SessionScreen.RESULTS -> Results(state, onStart, onResultsHome, history, resultId, time, onHistory, onRetryResult)
                     SessionScreen.PRACTICE_FEEDBACK, SessionScreen.PRACTICE_COMPLETE -> key(state.feedback?.token) { PracticeExplanation(state, onNext, onPractice, onStart, onHome) }
                 }
             }

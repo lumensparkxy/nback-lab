@@ -1,6 +1,6 @@
 # nback-lab
 
-An offline visual n-back Android app, developed through a portable, evidence-based
+An offline-capable visual n-back Android app, developed through a portable, evidence-based
 agent coding harness. **Current implementation: selectable Position, Colour and
 Number in all seven combinations, at 1-, 2- or 3-back, with guided practice and
 local history.** Choose the types to remember and respond independently for each.
@@ -21,6 +21,7 @@ Position-only history is preserved. Practice and unfinished sessions are not sav
 - [Architecture decisions](docs/decisions/README.md)
 - [Development workflow](docs/development.md) and [agent roles](docs/agents.md)
 - [Toolchain and setup](docs/toolchain.md)
+- [Release, code-hygiene and ads/privacy workflows](docs/android-readiness.md)
 - [GitHub activation and issue drafts](docs/github-setup.md)
 - [Bootstrap validation record](docs/validation/bootstrap.md)
 

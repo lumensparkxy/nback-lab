@@ -100,6 +100,7 @@ internal class HomeUiState { var helpExpanded by mutableStateOf(false) }
             Text(stringResource(R.string.how_to_play), Modifier.weight(1f), textAlign = TextAlign.Start)
             AppIcon(R.drawable.ic_expand_more)
         }
+        PrivacyControls()
         if (help) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             TypeInstructions(settings.modeMask, settings.level)
             Text(pluralStringResource(R.plurals.session_details, settings.level, settings.level, (config.durationMillis / 1000).toInt()))

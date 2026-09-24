@@ -29,6 +29,7 @@ class SessionViewModel(
     private val game: VisualSession = VisualSession.withTypes(MonotonicClock { SystemClock.elapsedRealtime() }) { type, n -> generateSequence(Random.Default, n, type.cardinality) },
     private val wallClock: () -> Long = System::currentTimeMillis,
     private val newId: () -> String = { UUID.randomUUID().toString() },
+    private val completedNormal: (String) -> Unit = {},
 ) : ViewModel() {
     internal val homeUi = HomeUiState()
     var state by mutableStateOf(game.state)
@@ -180,6 +181,7 @@ class SessionViewModel(
             numberOutcomes = current.outcomes[StimulusType.NUMBER]?.joinToString("") { it.storageCode().toString() } ?: "")
         history.capture(record)
         resultId = id
+        completedNormal(id)
     }
     fun openHistory() {
         if (state.screen !in listOf(SessionScreen.HOME, SessionScreen.RESULTS) || historyNavigation.open) return

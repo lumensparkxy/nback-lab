@@ -146,4 +146,15 @@
     <string name="decrease_interval">Decrease time per turn</string>
     <string name="increase_interval">Increase time per turn</string>
     <string name="interval_seconds_label">Time per turn in seconds</string>
+  <string name="privacy">Privacy</string>
+  <string name="privacy_options">Ad privacy options</string>
+  <string name="privacy_retry">Retry privacy check</string>
+  <string name="privacy_unavailable">The privacy check could not finish. Your exercises remain available.</string>
+  <string name="privacy_policy">Read full privacy policy</string>
+  <string name="privacy_close">Close</string>
+  <string name="privacy_notice">Your exercise settings and results stay on this device. No account is required. Clearing history removes saved results.
+
+When advertising is enabled, Google advertising services use the network and may process device information, IP address, app interactions and diagnostic information. We do not send your scores, exercise sequences or response timing for advertising.
+
+Ads use conservative age treatment and non-personalized requests for all users. We do not collect your age or date of birth. Ad privacy options appear below when Google makes them available. Exercises work without an internet connection or an available ad.</string>
 </resources>

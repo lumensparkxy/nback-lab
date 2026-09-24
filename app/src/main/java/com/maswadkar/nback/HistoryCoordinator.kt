@@ -99,7 +99,11 @@ class HistoryCoordinator(private val store: HistoryStore, scope: CoroutineScope)
     fun dismissClearFailure() { state = state.copy(clearFailed = false) }
 }
 
-class NBackApplication : Application() {
+open class NBackApplication : Application() {
+    open val monetizationEnabled: Boolean get() = BuildConfig.ADS_ENABLED
+    val adsRuntime by lazy { com.maswadkar.nback.ads.AdsRuntime(this, monetizationEnabled) }
+    val ads by lazy { com.maswadkar.nback.ads.AdCoordinator(
+        com.maswadkar.nback.ads.StoredAdQuota(this), historyScope, android.os.SystemClock::elapsedRealtime) }
     private val historyScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     val history: HistoryCoordinator by lazy {
         HistoryCoordinator(RoomHistoryStore(this, getDatabasePath("history.db")), historyScope)
