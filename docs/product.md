@@ -70,3 +70,12 @@ On 2026-09-21 the owner approved [F006](features/F006-session-interval-and-accur
 a remembered 1–30 second pace, exposure bands of 1/2/3 seconds, and per-type
 cumulative accuracy timelines for new completed sessions and their saved details.
 This supersedes fixed timing and summary-only retention where explicitly stated.
+
+## F007 monetization extension — 2026-09-24
+
+The owner approved [F007](features/F007-ad-supported-monetization.md) for worldwide
+13+ use: occasional AdMob interstitials after completed Results → Home, with
+local frequency limits and conservative non-personalized age treatment. Core
+exercises/history remain offline-capable. This supersedes the initial exclusion
+of advertisements and network services only for this feature; no account, billing,
+analytics or backend is added. Production enablement and publishing remain separate.

@@ -7,3 +7,5 @@ when a later choice replaces them. Record significant tradeoffs, not every edit.
 - [ADR-002: Android foundation](ADR-002-android-foundation.md)
 - [ADR-003: Session preferences](ADR-003-session-preferences.md) — Accepted
 - [ADR-004: Session history](ADR-004-session-history.md) — Accepted
+
+- [ADR-005: Optional ads outside gameplay](ADR-005-monetization.md) — Accepted
