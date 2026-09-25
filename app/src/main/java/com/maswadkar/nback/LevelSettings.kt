@@ -1,6 +1,7 @@
 package com.maswadkar.nback
 
 import android.content.Context
+import com.maswadkar.nback.engine.SessionRules
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
@@ -20,10 +21,10 @@ private val Context.levelDataStore by preferencesDataStore(
     },
 )
 
-data class LoadedLevel(val level: Int = 2, val reset: Boolean = false, val modeMask: Int = 1, val typesReset: Boolean = false, val intervalSeconds: Int = 3, val intervalReset: Boolean = false)
+data class LoadedLevel(val level: Int = 2, val reset: Boolean = false, val modeMask: Int = 1, val typesReset: Boolean = false, val intervalSeconds: Int = 3, val intervalReset: Boolean = false, val sessionLength: Int = 20, val lengthReset: Boolean = false)
 interface LevelSettings {
     suspend fun load(): LoadedLevel
-    suspend fun save(level: Int, modeMask: Int = 1, intervalSeconds: Int = 3)
+    suspend fun save(level: Int, modeMask: Int = 1, intervalSeconds: Int = 3, sessionLength: Int = 20)
 }
 
 class StoredLevelSettings(
@@ -39,17 +40,20 @@ class StoredLevelSettings(
         val invalidTypes = types != null && (types !is Int || types !in 1..7)
         val interval = preferences.asMap().entries.find { it.key.name == "interval_seconds" }?.value
         val invalidInterval = interval != null && (interval !is Int || interval !in 1..30)
+        val length = preferences.asMap().entries.find { it.key.name == "session_length" }?.value
+        val invalidLength = length != null && (length !is Int || length !in SessionRules.LENGTHS)
         val corrupt = consumeCorruption()
         return LoadedLevel(if (!invalid && value is Int) value else 2, corrupt || invalid,
-            if (!invalidTypes && types is Int) types else 1, corrupt || invalidTypes, if (!invalidInterval && interval is Int) interval else 3, corrupt || invalidInterval)
+            if (!invalidTypes && types is Int) types else 1, corrupt || invalidTypes, if (!invalidInterval && interval is Int) interval else 3, corrupt || invalidInterval, if (!invalidLength && length is Int) length else 20, corrupt || invalidLength)
     }
 
-    override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) {
-        require(level in 1..3 && modeMask in 1..7 && intervalSeconds in 1..30)
+    override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int, sessionLength: Int) {
+        require(level in 1..3 && modeMask in 1..7 && intervalSeconds in 1..30 && sessionLength in SessionRules.LENGTHS)
         store.edit {
             it[intPreferencesKey("selected_n")] = level
             it[intPreferencesKey("selected_types")] = modeMask
             it[intPreferencesKey("interval_seconds")] = intervalSeconds
+            it[intPreferencesKey("session_length")] = sessionLength
         }
     }
 
@@ -60,7 +64,7 @@ class StoredLevelSettings(
     }
 }
 
-enum class SettingsNotice { INTERVAL_RESET, SETTINGS_RESET, RESET, TYPES_RESET, BOTH_RESET, LOAD_FAILED, SAVE_FAILED }
+enum class SettingsNotice { LENGTH_RESET, INTERVAL_RESET, SETTINGS_RESET, RESET, TYPES_RESET, BOTH_RESET, LOAD_FAILED, SAVE_FAILED }
 data class SettingsState(
     val level: Int = 2,
     val loading: Boolean = true,
@@ -68,4 +72,5 @@ data class SettingsState(
     val notice: SettingsNotice? = null,
     val modeMask: Int = 1,
     val intervalSeconds: Int = 3,
+    val sessionLength: Int = 20,
 )

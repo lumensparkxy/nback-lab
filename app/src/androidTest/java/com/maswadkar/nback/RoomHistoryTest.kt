@@ -67,7 +67,7 @@ class RoomHistoryTest {
                     "random" -> file.writeText("not a database")
                     "empty" -> file.writeBytes(byteArrayOf())
                     "truncated" -> file.writeBytes(file.readBytes().take(120).toByteArray())
-                    "version" -> sql(file, "PRAGMA user_version = 4")
+                    "version" -> sql(file, "PRAGMA user_version = 5")
                     "identity" -> sql(file, "UPDATE room_master_table SET identity_hash = 'different'")
                     "columns" -> sql(file, "ALTER TABLE sessions ADD COLUMN unexpected INTEGER")
                 }

@@ -37,14 +37,17 @@ class PracticeInteractionTest {
 
     @Test fun settingsLoadingSelectionSemanticsAndRetryAreUsable() {
         compose.runOnIdle { settings.value = SettingsState(loading = true) }
-        compose.onNodeWithTag("level_1").assertIsNotEnabled()
+        compose.onNodeWithTag("settings").performScrollTo().performClick()
+        compose.onNodeWithTag("level_1").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithTag("settings_back").performScrollTo().performClick()
         compose.onNodeWithTag("start").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithTag("practice").performScrollTo().assertIsNotEnabled()
         compose.runOnIdle { settings.value = SettingsState(loading = false) }
+        compose.onNodeWithTag("settings").performScrollTo().performClick()
         for (n in 1..3) {
             compose.onNodeWithTag("level_$n").performScrollTo().assertHeightIsAtLeast(48.dp).performClick().assertIsSelected()
-            compose.onNodeWithText("Look $n ${if (n == 1) "turn" else "turns"} back").performScrollTo().assertIsDisplayed()
-            compose.onNodeWithText("$n warm-up · 20 scored turns · ${(n+20)*3} seconds", substring=true).performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Position · $n-back").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("$n warm-up ${if (n == 1) "turn" else "turns"} · ${elapsedLabel((n+20)*3000L)} total (minutes:seconds)", substring=true).performScrollTo().assertIsDisplayed()
         }
         compose.runOnIdle { settings.value = settings.value.copy(notice = SettingsNotice.SAVE_FAILED) }
         compose.onNodeWithTag("retry").performScrollTo().performClick()

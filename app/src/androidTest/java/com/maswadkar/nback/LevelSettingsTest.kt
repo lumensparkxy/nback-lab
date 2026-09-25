@@ -46,13 +46,13 @@ class LevelSettingsTest {
     }
     private class PendingSettings : LevelSettings {
         val load = CompletableDeferred<LoadedLevel>()
-        data class Write(val level: Int, val modeMask: Int, val intervalSeconds: Int, val done: CompletableDeferred<Unit> = CompletableDeferred())
+        data class Write(val level: Int, val modeMask: Int, val intervalSeconds: Int, val sessionLength: Int, val done: CompletableDeferred<Unit> = CompletableDeferred())
         val writes = Channel<Write>(Channel.UNLIMITED)
         var stored: Int? = null
         var storedMask: Int? = null
         override suspend fun load() = load.await()
-        override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) {
-            val write = Write(level, modeMask, intervalSeconds); writes.send(write); write.done.await(); stored = level; storedMask = modeMask
+        override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int, sessionLength: Int) {
+            val write = Write(level, modeMask, intervalSeconds, sessionLength); writes.send(write); write.done.await(); stored = level; storedMask = modeMask
         }
         suspend fun next(): Write = withTimeout(5_000) { writes.receive() }
     }
@@ -110,6 +110,25 @@ class LevelSettingsTest {
             assertEquals(3, retry.level); assertEquals(7, retry.modeMask)
             retry.done.complete(Unit); await { !model.settings.saving }
             assertNull(main { model.settings.notice })
+        } finally { main { holder.clear() } }
+    }
+
+    @Test fun lengthWritesRemainOrderedWhileRunUsesSnapshot() = runBlocking {
+        val prefs = PendingSettings(); val holder = ViewModelStore()
+        val model = main { SessionViewModel(prefs, testHistory(historyScope)).also { holder.put("length", it) } }
+        try {
+            prefs.load.complete(LoadedLevel(3, modeMask = 7, intervalSeconds = 8, sessionLength = 50)); await { !model.settings.loading }
+            main { model.selectLength(10) }; val older = prefs.next()
+            main { model.selectLength(30); model.start() }
+            assertEquals(30, main { model.state.config.sessionLength })
+            older.done.completeExceptionally(IOException("older"))
+            val current = prefs.next(); assertEquals(30, current.sessionLength)
+            current.done.completeExceptionally(IOException("latest")); await { model.settings.notice == SettingsNotice.SAVE_FAILED }
+            main { model.selectLength(50) }; assertEquals(30, main { model.settings.sessionLength })
+            main { model.interrupt(); model.start() }; assertEquals(30, main { model.state.config.sessionLength })
+            main { model.home(); model.retrySave() }
+            val retry = prefs.next(); assertEquals(30, retry.sessionLength); assertEquals(8, retry.intervalSeconds)
+            retry.done.complete(Unit); await { !model.settings.saving }
         } finally { main { holder.clear() } }
     }
 
@@ -217,7 +236,7 @@ class LevelSettingsTest {
             val recovered = PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + job),
                 corruptionHandler = ReplaceFileCorruptionHandler { corrupted.set(true); emptyPreferences() }, produceFile = { file })
             val repaired = StoredLevelSettings(recovered) { corrupted.getAndSet(false) }
-            assertEquals(LoadedLevel(2, true, typesReset = true, intervalReset = true), repaired.load())
+            assertEquals(LoadedLevel(2, true, typesReset = true, intervalReset = true, lengthReset = true), repaired.load())
             repaired.save(2); assertEquals(LoadedLevel(), repaired.load())
         } finally { job.cancelAndJoin(); dir.deleteRecursively() }
     }

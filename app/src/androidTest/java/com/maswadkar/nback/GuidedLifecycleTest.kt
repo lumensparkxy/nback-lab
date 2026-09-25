@@ -22,14 +22,14 @@ class GuidedLifecycleTest {
             bitmap.recycle()
         }
     }
-    @Test fun helpRetainsInMemoryAcrossRotationAndFreshOwnerStartsCollapsed() {
+    @Test fun helpRouteRetainsAcrossRotationAndFreshOwnerStartsAtHome() {
         val model = compose.activity.session
         compose.waitUntil(10000) { !model.settings.loading }
         val original = model.settings
-        val originalHelp = model.homeUi.helpExpanded
+        val originalHelp = model.homeUi.destination
         try {
         compose.runOnIdle {
-            model.home(); model.homeUi.helpExpanded = false; model.selectLevel(2)
+            model.home(); model.homeUi.destination = HomeDestination.HOME; model.selectLevel(2)
             com.maswadkar.nback.engine.StimulusType.entries.forEach { if (model.settings.modeMask and it.bit == 0) model.toggleType(it) }
         }
         // Small physical screens may scroll; the reference-size fit has its own test.
@@ -37,23 +37,23 @@ class GuidedLifecycleTest {
         capture("activity-home")
         compose.onNodeWithTag("help").performScrollTo().performClick()
         compose.activityRule.scenario.recreate()
-        compose.onNodeWithTag("help").performScrollTo().assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
+        compose.onNodeWithTag("help_screen").assertIsDisplayed()
         compose.runOnIdle {
             assertSame(model, compose.activity.session)
             // Process recreation constructs a fresh owner; no saved-state input carries this UI flag.
             val holder = ViewModelStore()
             val fresh = SessionViewModel(object : LevelSettings {
                 override suspend fun load() = LoadedLevel()
-                override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) = Unit
+                override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int, sessionLength: Int) = Unit
             }, model.history)
             holder.put("fresh", fresh)
-            assertFalse(fresh.homeUi.helpExpanded)
+            assertEquals(HomeDestination.HOME, fresh.homeUi.destination)
             holder.clear()
         }
-        compose.onNodeWithTag("help").performClick()
+        compose.onNodeWithTag("help_back").performScrollTo().performClick()
         } finally {
             compose.runOnIdle {
-                model.home(); model.homeUi.helpExpanded = originalHelp; model.selectLevel(original.level)
+                model.home(); model.homeUi.destination = originalHelp; model.selectLevel(original.level)
                 // Restore preferences so later real-Activity tests start from their own setup.
                 com.maswadkar.nback.engine.StimulusType.entries.filter { original.modeMask and it.bit != 0 && model.settings.modeMask and it.bit == 0 }.forEach(model::toggleType)
                 com.maswadkar.nback.engine.StimulusType.entries.filter { original.modeMask and it.bit == 0 && model.settings.modeMask and it.bit != 0 }.forEach(model::toggleType)
@@ -62,6 +62,29 @@ class GuidedLifecycleTest {
             compose.runOnIdle { assertNotEquals(SettingsNotice.SAVE_FAILED, model.settings.notice) }
         }
     }
+    @Test fun progressSelectionTableAndScrollSurviveRotation() {
+        val model = compose.activity.session
+        compose.waitUntil(10000) { !model.settings.loading && model.history.state.load == HistoryLoad.READY }
+        val record = lengthRecord("progress-rotate-${System.nanoTime()}", 50, 7).copy(level = 1, intervalSeconds = 29)
+        compose.runOnIdle { model.home(); model.history.capture(record) }
+        compose.waitUntil(10000) { model.history.state.entries[record.id]?.status == SaveStatus.SAVED }
+        compose.runOnIdle { model.openHistory(); model.showProgress(true); model.selectGroup(record.comparisonGroup()) }
+        compose.waitUntil(10000) { compose.onAllNodesWithTag("progress_list").fetchSemanticsNodes().isNotEmpty() && model.history.state.load == HistoryLoad.READY }
+        compose.onNodeWithTag("progress_list").performScrollToNode(hasTestTag("progress_table"))
+        compose.onNodeWithTag("progress_table").performClick()
+        compose.onNodeWithTag("progress_list").performScrollToKey(record.id)
+        compose.onNodeWithTag("progress_record_${record.id}").assertIsDisplayed()
+        compose.activityRule.scenario.recreate()
+        compose.waitUntil(10000) { compose.onAllNodesWithTag("progress_record_${record.id}").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("progress_record_${record.id}").assertIsDisplayed()
+        compose.runOnIdle {
+            assertSame(model, compose.activity.session)
+            assertTrue(model.historyNavigation.progressTable)
+            assertEquals(record.comparisonGroup(), model.historyNavigation.group)
+        }
+        capture("activity-progress-rotation")
+    }
+
     @Test fun savedDetailsRotateAndLargeTextHistoryRemainsUsable() {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         fun shell(command: String) = android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(command)).bufferedReader().use { it.readText().trim() }

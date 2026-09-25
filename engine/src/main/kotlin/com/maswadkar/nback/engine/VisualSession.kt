@@ -1,10 +1,12 @@
 package com.maswadkar.nback.engine
 
 import kotlin.random.Random
+import kotlin.math.roundToInt
 
 fun interface MonotonicClock { fun nowMillis(): Long }
 
 object SessionRules {
+    val LENGTHS = listOf(10, 20, 30, 50)
     const val SCORED_TRIALS = 20
     const val MATCHES = 6
     const val TRIAL_MS = 3_000L
@@ -19,21 +21,22 @@ fun activeTypes(modeMask: Int): List<StimulusType> {
     return StimulusType.entries.filter { modeMask and it.bit != 0 }
 }
 
-data class SessionConfig(val level: Int = 2, val practice: Boolean = false, val modeMask: Int = 1, val intervalSeconds: Int = 3) {
-    init { require(level in 1..3); require(modeMask in 1..7); require(intervalSeconds in 1..30) }
+data class SessionConfig(val level: Int = 2, val practice: Boolean = false, val modeMask: Int = 1, val intervalSeconds: Int = 3, val sessionLength: Int = 20) {
+    init { require(level in 1..3); require(modeMask in 1..7); require(intervalSeconds in 1..30); require(sessionLength in SessionRules.LENGTHS) }
     val types: List<StimulusType> get() = activeTypes(modeMask)
-    val scoredTrials: Int get() = if (practice) 4 else SessionRules.SCORED_TRIALS
+    val scoredTrials: Int get() = if (practice) 4 else sessionLength
+    val targetCount: Int get() = sessionLength * 3 / 10
     val totalTrials: Int get() = level + scoredTrials
     val intervalMillis: Long get() = intervalSeconds * 1_000L
     val exposureMillis: Long get() = when (intervalSeconds) { in 1..7 -> 1_000L; in 8..15 -> 2_000L; else -> 3_000L }
     val durationMillis: Long get() = totalTrials * intervalMillis
 }
 
-/** Cells are 0..8. Exactly six uniformly sampled scored indices are matches. */
-fun generateSequence(random: Random, level: Int = 2, cardinality: Int = 9): List<Int> {
+/** Exactly 30% of scored indices are uniformly sampled targets. */
+fun generateSequence(random: Random, level: Int = 2, cardinality: Int = 9, sessionLength: Int = 20): List<Int> {
     require(cardinality >= 2)
-    val config = SessionConfig(level)
-    val matches = (level until config.totalTrials).shuffled(random).take(SessionRules.MATCHES).toSet()
+    val config = SessionConfig(level, sessionLength = sessionLength)
+    val matches = (level until config.totalTrials).shuffled(random).take(config.targetCount).toSet()
     val cells = mutableListOf<Int>()
     repeat(config.totalTrials) { trial ->
         cells += when {
@@ -63,7 +66,9 @@ fun classify(matches: Boolean, responded: Boolean): Outcome = when {
 
 data class SessionResult(val hits: Int = 0, val misses: Int = 0, val falseAlarms: Int = 0, val correctRejections: Int = 0) {
     val correct: Int get() = hits + correctRejections
-    val accuracy: Int get() = correct * 100 / SessionRules.SCORED_TRIALS
+    val total: Int get() = hits + misses + falseAlarms + correctRejections
+    val percentage: Double get() = if (total == 0) 0.0 else correct * 100.0 / total
+    val accuracy: Int get() = percentage.roundToInt()
     fun record(outcome: Outcome): SessionResult = when (outcome) {
         Outcome.HIT -> copy(hits = hits + 1)
         Outcome.MISS -> copy(misses = misses + 1)
@@ -127,12 +132,13 @@ fun practiceSequences(config: SessionConfig): Map<StimulusType, List<Int>> = con
 /** Single-thread confined; clock, sequences and all gameplay rules are Android-free. */
 class VisualSession private constructor(
     private val clock: MonotonicClock,
-    private val sequenceFactory: (StimulusType, Int) -> List<Int>,
+    private val sequenceFactory: (StimulusType, SessionConfig) -> List<Int>,
 ) {
     constructor(clock: MonotonicClock, sequenceFactory: (Int) -> List<Int>) : this(clock,
-        { type, n -> if (type == StimulusType.POSITION) sequenceFactory(n) else generateSequence(Random.Default, n, type.cardinality) })
+        { type, config -> if (type == StimulusType.POSITION) sequenceFactory(config.level) else generateSequence(Random.Default, config.level, type.cardinality, config.sessionLength) })
     companion object {
-        fun withTypes(clock: MonotonicClock, factory: (StimulusType, Int) -> List<Int>) = VisualSession(clock, factory)
+        fun withTypes(clock: MonotonicClock, factory: (StimulusType, Int) -> List<Int>) = VisualSession(clock) { type, config -> factory(type, config.level) }
+        fun withConfig(clock: MonotonicClock, factory: (StimulusType, SessionConfig) -> List<Int>) = VisualSession(clock, factory)
     }
     var state = SessionState()
         private set
@@ -147,13 +153,13 @@ class VisualSession private constructor(
     // Never reset across runs: old Next callbacks cannot affect a restarted practice.
     private var feedbackToken = 0L
 
-    fun start(level: Int = 2, practice: Boolean = false, modeMask: Int = 1, intervalSeconds: Int = 3) {
-        val config = SessionConfig(level, practice, modeMask, intervalSeconds)
+    fun start(level: Int = 2, practice: Boolean = false, modeMask: Int = 1, intervalSeconds: Int = 3, sessionLength: Int = 20) {
+        val config = SessionConfig(level, practice, modeMask, intervalSeconds, sessionLength)
         if (state.isActive) return
-        val sequences = if (practice) practiceSequences(config) else config.types.associateWith { sequenceFactory(it, level).toList() }
+        val sequences = if (practice) practiceSequences(config) else config.types.associateWith { sequenceFactory(it, config).toList() }
         sequences.forEach { (type, sequence) ->
             require(sequence.size == config.totalTrials && sequence.all { it in 0 until type.cardinality })
-            if (!practice) require((level until sequence.size).count { sequence[it] == sequence[it - level] } == SessionRules.MATCHES)
+            if (!practice) require((level until sequence.size).count { sequence[it] == sequence[it - level] } == config.targetCount)
         }
         streams = sequences
         responses = config.types.associateWith { BooleanArray(config.totalTrials) }

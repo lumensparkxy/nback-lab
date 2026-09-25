@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
     private val adCoordinator get() = (application as NBackApplication).ads
     internal val adSurface by lazy { GoogleAdSurface(this, adsRuntime, adCoordinator,
         isResumed = { lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
-        isHome = { session.state.screen == SessionScreen.HOME && !session.historyNavigation.open },
+        isHome = { session.state.screen == SessionScreen.HOME && !session.historyNavigation.open && session.homeUi.destination == HomeDestination.HOME },
         result = { session.resultId.takeIf { session.state.screen == SessionScreen.RESULTS && !session.historyNavigation.open } },
         goHome = { id -> if (session.resultId == id && session.state.screen == SessionScreen.RESULTS && !session.historyNavigation.open) session.home() }) }
     internal fun resultsHome() { session.resultId?.let(adCoordinator::resultsHome) }

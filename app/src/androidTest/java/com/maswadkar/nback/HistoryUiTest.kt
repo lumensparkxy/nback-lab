@@ -38,7 +38,7 @@ class HistoryUiTest {
             }, CoroutineScope(job + Dispatchers.Main.immediate))
             model = SessionViewModel(object : LevelSettings {
                 override suspend fun load() = LoadedLevel(3)
-                override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int) = Unit
+                override suspend fun save(level: Int, modeMask: Int, intervalSeconds: Int, sessionLength: Int) = Unit
             }, history).also { holder.put("model", it); it.resume() }
         }
         compose.setContent { NBackApp(model) }
@@ -48,6 +48,10 @@ class HistoryUiTest {
     private fun open() {
         compose.onNodeWithTag("history").performScrollTo().performClick()
         compose.waitUntil { history.state.load == HistoryLoad.READY }
+        waitForList()
+    }
+    private fun waitForList() {
+        compose.waitUntil(10000) { compose.onAllNodesWithTag("history_list").fetchSemanticsNodes().isNotEmpty() }
     }
     private fun openClearMenu() {
         compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_actions"))
@@ -80,7 +84,9 @@ class HistoryUiTest {
     @Test fun tenThousandRowsStayLazyAndDetailBackRetainsFilterAndScroll() {
         launch((0 until 10_000).map { sampleRecord("r$it", it % 3 + 1, 1_750_000_000_000L + it) })
         open()
-        compose.onNodeWithTag("filter_3").performScrollTo().performClick()
+        compose.onNodeWithTag("history_list").performScrollToNode(hasTestTag("filter_3"))
+        compose.onNodeWithTag("filter_3").performClick()
+        waitForList()
         // Address stable lazy-list keys without assuming a header count or
         // linearly paging through 10,000 rows on slower emulator targets.
         compose.onNodeWithTag("history_list").performScrollToKey("session:r9698")
@@ -89,11 +95,13 @@ class HistoryUiTest {
         compose.onNodeWithText("False alarms: 3 of 14").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Accuracy includes correctly waiting on non-matches. Not tapping at all gives 70% accuracy, so check hits and misses too.").performScrollTo().assertIsDisplayed()
         compose.runOnIdle { model.back() }
+        waitForList()
         compose.onNodeWithTag("record_r9698").assertIsDisplayed()
         assertEquals(3, model.historyNavigation.filter)
         assertTrue(model.historyNavigation.scrollIndex >= 100)
         compose.onNodeWithTag("history_list").performScrollToIndex(0)
         compose.onNodeWithTag("filter_0").performClick()
+        waitForList()
         compose.onNodeWithTag("history_list").performScrollToKey("session:r0")
         compose.onNodeWithTag("record_r0").assertIsDisplayed()
         compose.onAllNodes(hasClickAction()).fetchSemanticsNodes().let { assertTrue("Lazy list must not compose 10000 rows", it.size < 100) }

@@ -95,6 +95,6 @@ class HistoryLifecycleTest {
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("Clear all history?").assertDoesNotExist()
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-        compose.onNodeWithText("Set up your next round").assertIsDisplayed()
+        compose.onNodeWithText("Ready for a round?").assertIsDisplayed()
     }
 }
