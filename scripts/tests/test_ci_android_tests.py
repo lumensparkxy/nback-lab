@@ -100,3 +100,21 @@ class CriticalSuiteTest(unittest.TestCase):
             source.write_text('package example\nclass ExampleTest { @Test(timeout=50) fun timed() {} }')
             with patch.object(ci, 'ROOT', root), self.assertRaises(ValueError):
                 ci.full_inventory()
+
+    def test_full_inventory_includes_qualified_junit_annotations(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / 'app/src/androidTest/java/example/ExampleTest.kt'
+            source.parent.mkdir(parents=True)
+            source.write_text('package example\nclass ExampleTest { @Test fun known() {} @org.junit.Test fun qualified() {} }')
+            with patch.object(ci, 'ROOT', root):
+                self.assertEqual(set(ci.full_inventory()), {'example.ExampleTest#known', 'example.ExampleTest#qualified'})
+
+    def test_full_inventory_rejects_tests_in_nonstandard_filename(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / 'app/src/androidTest/java/example/Unexpected.kt'
+            source.parent.mkdir(parents=True)
+            source.write_text('package example\nclass ExampleTest { @Test fun present() {} }')
+            with patch.object(ci, 'ROOT', root), self.assertRaises(ValueError):
+                ci.full_inventory()

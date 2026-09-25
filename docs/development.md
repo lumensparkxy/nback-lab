@@ -132,7 +132,7 @@ cases are deferred from routine CI. This accepts later detection for regressions
 covered only by those tests.
 
 Run the complete suite with **Actions → CI → Run workflow → android-suite: full**
-on the intended branch, or locally with `ANDROID_SERIAL=emulator-... ./scripts/emulator-test.sh`.
+on the intended branch, or locally with `ANDROID_SERIAL=emulator-... python3 scripts/ci_android_tests.py full`.
 A full run is required before a release. Feature PRs must still run relevant
 acceptance tests locally, including tests outside the critical selection; the fast
 CI selection does not replace feature-specific evidence. Review the selection

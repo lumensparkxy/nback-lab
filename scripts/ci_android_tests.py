@@ -46,12 +46,15 @@ def full_inventory():
     Reject unsupported declarations instead of silently certifying partial coverage.
     """
     expected = []
-    for path in sorted((ROOT / 'app/src/androidTest/java').rglob('*Test.kt')):
+    for path in sorted((ROOT / 'app/src/androidTest/java').rglob('*.kt')):
         source = path.read_text()
+        annotations = re.findall(r'@(?:\w+\.)*Test\b', source)
+        if not annotations:
+            continue
         package = re.search(r'^package\s+([\w.]+)', source, re.MULTILINE)
         classes = re.findall(r'\bclass\s+(\w+Test)\b', source)
-        methods = re.findall(r'@Test\s+fun\s+(\w+)\s*\(', source)
-        if not package or classes != [path.stem] or len(methods) != len(re.findall(r'@Test\b', source)):
+        methods = re.findall(r'@(?:org\.junit\.)?Test\s+fun\s+(\w+)\s*\(', source)
+        if not package or classes != [path.stem] or len(methods) != len(annotations):
             raise ValueError(f'Unsupported test declarations: {path}')
         expected.extend(f'{package.group(1)}.{path.stem}#{method}' for method in methods)
     if not expected or len(set(expected)) != len(expected):
