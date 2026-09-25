@@ -212,3 +212,12 @@ delivered through [PR #12](https://github.com/lumensparkxy/nback-lab/pull/12).
 No product decisions remain open for this fixed-level slice. Configurable
 difficulty and persistent history still require their own feature agreements.
 Specification approval is separate from authorization to merge or implement #3.
+
+## F008–F010 amendment — 2026-09-25
+
+Owner-approved [F008](F008-settings-and-session-length.md) generalizes normal
+length and count/timing denominators and moves controls into Settings.
+[F009](F009-results-and-progress.md) defines the Results destination and comparable
+cross-session progress. [F010](F010-how-to-play.md) moves full instructions to a
+dedicated screen. These supersede only the explicitly revised behavior; preserve
+all remaining scoring, practice, lifecycle, storage and accessibility contracts.

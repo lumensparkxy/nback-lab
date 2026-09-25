@@ -65,3 +65,12 @@ Owner approval adds integer `interval_seconds`, default 3 and range 1–30. Save
 with n and mode in the existing ordered transaction. Missing values default
 silently; invalid values reset only this field with notice. Commit slider changes
 on interaction completion, avoiding a disk write for every drag position.
+
+## F008 extension — 2026-09-25
+
+Owner approval adds integer `session_length`, default 20 and supported values
+10/20/30/50. Save level, mode, interval and length together in the existing ordered
+transaction. Missing length defaults silently; invalid length resets independently
+with a visible notice. The immutable configuration snapshots normal length even
+for practice, which still evaluates four examples. Settings presentation moves to
+its own transient destination; process restart returns Home.

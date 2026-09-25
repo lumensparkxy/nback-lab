@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -82,10 +83,11 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
 @Composable internal fun ResultSummary(result: SessionResult, level: Int, completedAt: Long?, time: HistoryTime) =
     MultiResultSummary(mapOf(StimulusType.POSITION to result), level, completedAt, time)
 
-@Composable internal fun MultiResultSummary(results: Map<StimulusType, SessionResult>, level: Int, completedAt: Long?, time: HistoryTime, intervalSeconds: Int = 3) {
+@Composable internal fun MultiResultSummary(results: Map<StimulusType, SessionResult>, level: Int, completedAt: Long?, time: HistoryTime, intervalSeconds: Int = 3, sessionLength: Int = 20) {
     var details by rememberSaveable(results, level, completedAt) { mutableStateOf(false) }
     Text(modeTitle(results.keys.sumOf { it.bit }, level), style = MaterialTheme.typography.titleMedium)
-    Text(stringResource(R.string.time_per_turn, intervalSeconds), style = MaterialTheme.typography.bodySmall, color = Muted)
+    Text(stringResource(R.string.length_pace, sessionLength, intervalSeconds), style = MaterialTheme.typography.bodySmall, color = Muted)
+    Text(pluralStringResource(R.plurals.warmup_duration, level, level, elapsedLabel((level + sessionLength) * intervalSeconds * 1000L)), color = Muted)
     completedAt?.let { Text(time.format(it, detail = true), Modifier.testTag("completed_at"), style = MaterialTheme.typography.bodySmall, color = Muted) }
     for ((type, result) in results) {
         Column(Modifier.fillMaxWidth().background(Color.White, RoundedCornerShape(16.dp)).padding(16.dp),
@@ -96,8 +98,8 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                     .testTag(if (type == StimulusType.POSITION) "accuracy" else "accuracy_${type.bit}"),
                     style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
-            Text(stringResource(R.string.hits_denominator, result.hits) + " · " + stringResource(R.string.outcome_count, stringResource(R.string.misses), result.misses), style = MaterialTheme.typography.bodyMedium)
-            Text(stringResource(R.string.false_alarms_denominator, result.falseAlarms), style = MaterialTheme.typography.bodyMedium, color = Muted)
+            Text(stringResource(R.string.hits_denominator, result.hits, sessionLength * 3 / 10) + " · " + stringResource(R.string.outcome_count, stringResource(R.string.misses), result.misses), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.false_alarms_denominator, result.falseAlarms, sessionLength * 7 / 10), style = MaterialTheme.typography.bodyMedium, color = Muted)
         }
     }
     Text(stringResource(R.string.results_baseline), style = MaterialTheme.typography.bodyMedium, color = Muted)
@@ -110,10 +112,10 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
     if (details) for ((type, result) in results) {
         val label = typeLabel(type)
         Text(label, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Text(stringResource(R.string.correct, result.correct), style = MaterialTheme.typography.titleMedium)
-        ResultOutcome(stringResource(R.string.hits_denominator, result.hits), stringResource(R.string.type_hits_detail, label))
+        Text(stringResource(R.string.correct, result.correct, sessionLength), style = MaterialTheme.typography.titleMedium)
+        ResultOutcome(stringResource(R.string.hits_denominator, result.hits, sessionLength * 3 / 10), stringResource(R.string.type_hits_detail, label))
         ResultOutcome(stringResource(R.string.outcome_count, stringResource(R.string.misses), result.misses), stringResource(R.string.type_misses_detail, label))
-        ResultOutcome(stringResource(R.string.false_alarms_denominator, result.falseAlarms), stringResource(R.string.type_false_detail, label))
+        ResultOutcome(stringResource(R.string.false_alarms_denominator, result.falseAlarms, sessionLength * 7 / 10), stringResource(R.string.type_false_detail, label))
         ResultOutcome(stringResource(R.string.outcome_count, stringResource(R.string.correct_rejections), result.correctRejections), stringResource(R.string.type_rejections_detail, label))
     }
 }
@@ -167,25 +169,27 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                         val record = history.records.find { it.id == navigation.detailId }
                         if (record == null) StatusText(stringResource(R.string.history_missing))
                         else {
-                            MultiResultSummary(record.results(), record.level, record.completedAt, time, record.intervalSeconds)
-                            AccuracyChart(com.maswadkar.nback.engine.SessionConfig(record.level, modeMask = record.modeMask, intervalSeconds = record.intervalSeconds), record.outcomes())
+                            MultiResultSummary(record.results(), record.level, record.completedAt, time, record.intervalSeconds, record.sessionLength)
+                            AccuracyChart(com.maswadkar.nback.engine.SessionConfig(record.level, modeMask = record.modeMask, intervalSeconds = record.intervalSeconds, sessionLength = record.sessionLength), record.outcomes())
                         }
                     }
                 }
                 BackButton(session::back)
                 HomeButton(session::home)
             }
-        } else key(navigation.filter, navigation.modeFilter) {
+        } else if (navigation.progress) key(navigation.group) { ProgressScreen(session, time, modifier) }
+        else key(navigation.filter, navigation.modeFilter, navigation.paceFilter, navigation.lengthFilter) {
+            val prepared = preparedHistory(history.records, navigation)
+            if (history.load == HistoryLoad.READY && prepared == null) {
+                Column(modifier) { Text(stringResource(R.string.history_loading)) }
+            } else {
             val scroll = rememberLazyListState(navigation.scrollIndex, navigation.scrollOffset)
             LaunchedEffect(scroll) {
                 snapshotFlow { scroll.firstVisibleItemIndex to scroll.firstVisibleItemScrollOffset }.collect { (index, offset) ->
                     session.rememberHistoryScroll(index, offset)
                 }
             }
-            val rows = remember(history.records, navigation.filter, navigation.modeFilter) {
-                history.records.filter { (navigation.filter == 0 || it.level == navigation.filter) &&
-                    (navigation.modeFilter == 0 || it.modeMask == navigation.modeFilter) }
-            }
+            val rows = prepared?.rows.orEmpty()
             LazyColumn(modifier.testTag("history_list"), state = scroll, verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 item(key = "heading") {
                     Column {
@@ -193,11 +197,14 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                             QuietButton(stringResource(R.string.back), session::back, "history_back")
                             QuietButton(stringResource(R.string.home), session::home, "home")
                         }
-                        PageTitle(stringResource(R.string.history))
+                        PageTitle(stringResource(R.string.results_hub))
+                        ResultsSections(false, session::showProgress)
                     }
                 }
                 item(key = "filters") { HistoryFilters(navigation.filter, session::filterHistory) }
                 item(key = "modes") { ModeFilter(navigation.modeFilter, session::filterHistoryMode) }
+                item(key = "pace") { IntegerFilter(stringResource(R.string.pace_filter), navigation.paceFilter, (0..30).toList(), "pace_filter", session::filterHistoryPace) }
+                item(key = "length") { IntegerFilter(stringResource(R.string.length_filter), navigation.lengthFilter, listOf(0,10,20,30,50), "length_filter", session::filterHistoryLength) }
                 item(key = "comparison") { Text(stringResource(R.string.history_comparison), style = MaterialTheme.typography.bodySmall, color = Muted) }
                 item(key = "unsaved") { UnsavedSummary(history) { session.history.retry() } }
                 item(key = "actions") {
@@ -215,8 +222,10 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                     HistoryLoad.LOADING -> item(key = "loading") { StatusText(stringResource(R.string.history_loading)) }
                     HistoryLoad.FAILED -> item(key = "error") { LoadFailure(session.history::reload) }
                     HistoryLoad.READY -> {
-                        if (rows.isEmpty()) item(key = "empty") {
-                            Text(if (navigation.modeFilter != 0) stringResource(R.string.empty_mode)
+                        if (prepared == null) item { Text(stringResource(R.string.history_loading)) }
+                        else if (rows.isEmpty()) item(key = "empty") {
+                            Text(if (navigation.paceFilter != 0 || navigation.lengthFilter != 0) stringResource(R.string.no_filter_matches)
+                                else if (navigation.modeFilter != 0) stringResource(R.string.empty_mode)
                                 else if (navigation.filter == 0) stringResource(R.string.history_empty)
                                 else stringResource(R.string.history_empty_level, navigation.filter))
                         }
@@ -227,6 +236,7 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                                 Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                     Text(time.format(record.completedAt))
                                     Text(modeTitle(record.modeMask, record.level))
+                                    Text(stringResource(R.string.length_pace, record.sessionLength, record.intervalSeconds))
                                     record.results().forEach { (type, result) ->
                                         Text(stringResource(R.string.type_accuracy, typeLabel(type), result.accuracy), fontWeight = FontWeight.SemiBold)
                                     }
@@ -237,6 +247,7 @@ data class HistoryTime(val locale: Locale = Locale.getDefault(), val zone: ZoneI
                 }
             }
         }
+    }
     }
     if (navigation.confirmClear) AlertDialog(
         onDismissRequest = session::cancelClear,

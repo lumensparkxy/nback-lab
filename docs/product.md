@@ -79,3 +79,14 @@ local frequency limits and conservative non-personalized age treatment. Core
 exercises/history remain offline-capable. This supersedes the initial exclusion
 of advertisements and network services only for this feature; no account, billing,
 analytics or backend is added. Production enablement and publishing remain separate.
+
+## F008–F010 session experience — 2026-09-25
+
+The owner approved [F008](features/F008-settings-and-session-length.md),
+[F009](features/F009-results-and-progress.md) and
+[F010](features/F010-how-to-play.md): dedicated Settings, Results and How to Play;
+10/20/30/50 scored turns, default 20; preserved Number 1–9 and 1–3-back; comparable
+cross-session graphs and preserving local-history migration. Home keeps a compact
+configuration summary and direct Start/practice actions. These explicitly amend
+prior fixed-length and Home-inline presentation rules. Issue #35 tracks delivery;
+merging/publishing remain separate. Symbol is deferred.

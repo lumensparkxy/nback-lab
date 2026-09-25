@@ -32,95 +32,160 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.maswadkar.nback.engine.StimulusType
 
-/** Retained by the session ViewModel; deliberately absent from saved instance state. */
-internal class HomeUiState { var helpExpanded by mutableStateOf(false) }
+/** Retained by the session ViewModel; deliberately absent from process restoration. */
+internal enum class HomeDestination { HOME, SETTINGS, HELP }
+internal class HomeUiState { var destination by mutableStateOf(HomeDestination.HOME) }
+internal fun SettingsState.config() = SessionConfig(level, modeMask = modeMask,
+    intervalSeconds = intervalSeconds, sessionLength = sessionLength)
 
 @Composable internal fun GuidedHome(
     settings: SettingsState, onSelect: (Int) -> Unit, onStart: () -> Unit,
     onPractice: () -> Unit, onRetry: () -> Unit, history: HistoryState,
     onHistory: () -> Unit, onRetryAll: () -> Unit, onToggleType: (StimulusType) -> Unit,
-    uiState: HomeUiState, onInterval: (Int) -> Unit,
+    uiState: HomeUiState, onInterval: (Int) -> Unit, onLength: (Int) -> Unit = {},
 ) {
-    var interval by remember(settings.intervalSeconds) { mutableIntStateOf(settings.intervalSeconds) }
-    val config = SessionConfig(settings.level, modeMask = settings.modeMask, intervalSeconds = interval)
-    val decreaseLabel = stringResource(R.string.decrease_interval)
-    val increaseLabel = stringResource(R.string.increase_interval)
-    val intervalLabel = stringResource(R.string.interval_seconds_label)
-    val help = uiState.helpExpanded
-    val helpState = stringResource(if (help) R.string.expanded else R.string.collapsed)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            AppIcon(R.drawable.ic_apps)
-            Text(stringResource(R.string.app_name), Modifier.weight(1f).padding(start = 8.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            QuietButton(stringResource(R.string.history), onHistory, "history")
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
-            Text(stringResource(R.string.setup_subtitle), color = Muted, style = MaterialTheme.typography.bodyMedium)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            StepHeading(1, stringResource(R.string.what_to_match), stringResource(R.string.one_type_required))
-            TypeSettings(settings, onToggleType)
-        }
-        HorizontalDivider(color = Line)
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            StepHeading(2, stringResource(R.string.how_far), stringResource(R.string.how_far_detail))
-            LevelChoices(settings.level, 1..3, onSelect, "level", !settings.loading)
+    val home = { uiState.destination = HomeDestination.HOME }
+    when (uiState.destination) {
+        HomeDestination.SETTINGS -> SessionSettings(settings, onSelect, onToggleType, onInterval, onLength, onRetry, home)
+        HomeDestination.HELP -> HowToPlay(settings, onPractice, { uiState.destination = HomeDestination.SETTINGS }, home)
+        HomeDestination.HOME -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.time_per_turn, interval), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                TextButton(onClick = { interval--; onInterval(interval) }, enabled = !settings.loading && interval > 1,
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("interval_less")
-                        .semantics { contentDescription = decreaseLabel }) { Text("−") }
-                TextButton(onClick = { interval++; onInterval(interval) }, enabled = !settings.loading && interval < 30,
-                    modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("interval_more")
-                        .semantics { contentDescription = increaseLabel }) { Text("+") }
+                AppIcon(R.drawable.ic_apps)
+                Text(stringResource(R.string.app_name), Modifier.weight(1f).padding(start = 8.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                QuietButton(stringResource(R.string.results_hub), onHistory, "history")
             }
-            Slider(value = interval.toFloat(), onValueChange = { interval = it.roundToInt() },
-                onValueChangeFinished = { onInterval(interval) }, valueRange = 1f..30f, steps = 28,
-                enabled = !settings.loading, modifier = Modifier.fillMaxWidth().testTag("interval")
-                    .semantics { contentDescription = intervalLabel })
+            PageTitle(stringResource(R.string.home_title))
+            Text(stringResource(R.string.home_subtitle), color = Muted)
+            androidx.compose.material3.OutlinedButton(onClick = { uiState.destination = HomeDestination.SETTINGS },
+                shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth().testTag("setup_summary")) {
+                Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ConfigurationSummary(settings.config())
+                    Text(stringResource(R.string.change_settings), style = MaterialTheme.typography.labelLarge)
+                }
+            }
             SettingsNotices(settings, onRetry)
-        }
-        HorizontalDivider(color = Line)
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(pluralStringResource(R.plurals.session_brief, settings.level, settings.level, (config.durationMillis / 1000).toInt()), style = MaterialTheme.typography.bodySmall, color = Muted)
-            Text(stringResource(R.string.visual_brief, (config.exposureMillis / 1000).toInt()), style = MaterialTheme.typography.bodySmall, color = Muted)
-        }
-        Column {
+            Text(stringResource(R.string.visual_home_notice), color = Muted, style = MaterialTheme.typography.bodySmall)
             ActionButton(stringResource(R.string.start), onStart, !settings.loading, "start")
             QuietButton(stringResource(R.string.practice_invitation), onPractice, "practice", Modifier.fillMaxWidth(), !settings.loading)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(pluralStringResource(R.plurals.look_back, settings.level, settings.level), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            SessionExample(settings.modeMask, settings.level)
-        }
-        UnsavedSummary(history, onRetryAll)
-        TextButton(onClick = { uiState.helpExpanded = !help }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("help")
-            .semantics { stateDescription = helpState }) {
-            Text(stringResource(R.string.how_to_play), Modifier.weight(1f), textAlign = TextAlign.Start)
-            AppIcon(R.drawable.ic_expand_more)
-        }
-        PrivacyControls()
-        if (help) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            TypeInstructions(settings.modeMask, settings.level)
-            Text(pluralStringResource(R.plurals.session_details, settings.level, settings.level, (config.durationMillis / 1000).toInt()))
-            Text(stringResource(R.string.timing_detail, pluralStringResource(R.plurals.seconds_duration, interval, interval),
-                pluralStringResource(R.plurals.seconds_duration, (config.exposureMillis / 1000).toInt(), (config.exposureMillis / 1000).toInt())))
-            Text(stringResource(R.string.visual_requirement))
-            Text(stringResource(R.string.practice_description))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                QuietButton(stringResource(R.string.settings), { uiState.destination = HomeDestination.SETTINGS }, "settings", Modifier.weight(1f))
+                QuietButton(stringResource(R.string.how_to_play), { uiState.destination = HomeDestination.HELP }, "help", Modifier.weight(1f))
+            }
+            UnsavedSummary(history, onRetryAll)
+            PrivacyControls()
         }
     }
 }
 
-@Composable private fun StepHeading(step: Int, title: String, detail: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
-        Box(Modifier.size(28.dp).background(Apricot, CircleShape), contentAlignment = Alignment.Center) {
-            Text(step.toString(), style = MaterialTheme.typography.labelLarge)
+@Composable internal fun ConfigurationSummary(config: SessionConfig) {
+    Text(modeTitle(config.modeMask, config.level), fontWeight = FontWeight.SemiBold)
+    Text(stringResource(R.string.length_pace, config.sessionLength, config.intervalSeconds))
+    Text(pluralStringResource(R.plurals.warmup_duration, config.level, config.level, elapsedLabel((config.level + config.sessionLength) * config.intervalMillis)), color = Muted)
+}
+
+@Composable private fun SessionSettings(settings: SettingsState, onSelect: (Int) -> Unit,
+    onToggleType: (StimulusType) -> Unit, onInterval: (Int) -> Unit, onLength: (Int) -> Unit,
+    onRetry: () -> Unit, back: () -> Unit) {
+    var interval by remember(settings.intervalSeconds) { mutableIntStateOf(settings.intervalSeconds) }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("settings_screen"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        QuietButton(stringResource(R.string.back), back, "settings_back")
+        PageTitle(stringResource(R.string.settings))
+        Text(stringResource(R.string.next_session_settings), color = Muted)
+        Text(stringResource(R.string.session_length), style = MaterialTheme.typography.titleMedium)
+        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            for (length in com.maswadkar.nback.engine.SessionRules.LENGTHS) {
+                androidx.compose.material3.OutlinedButton(onClick = { onLength(length) }, enabled = !settings.loading,
+                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("length_$length")
+                        .semantics { selected = settings.sessionLength == length; role = Role.RadioButton },
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (settings.sessionLength == length) Ink else Color.White,
+                        contentColor = if (settings.sessionLength == length) Color.White else Ink),
+                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 12.dp)) { Text(length.toString()) }
+            }
         }
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.semantics { heading() })
-            Text(detail, style = MaterialTheme.typography.bodySmall, color = Muted)
+        Text(stringResource(R.string.length_explanation), color = Muted, style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.what_to_match), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.one_type_required), color = Muted)
+        TypeSettings(settings, onToggleType)
+        Text(stringResource(R.string.how_far), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.how_far_detail), color = Muted)
+        LevelChoices(settings.level, 1..3, onSelect, "level", !settings.loading)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.time_per_turn, interval), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+            val less = stringResource(R.string.decrease_interval)
+            val more = stringResource(R.string.increase_interval)
+            TextButton(onClick = { interval--; onInterval(interval) }, enabled = !settings.loading && interval > 1,
+                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("interval_less").semantics { contentDescription = less }) { Text("−") }
+            TextButton(onClick = { interval++; onInterval(interval) }, enabled = !settings.loading && interval < 30,
+                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag("interval_more").semantics { contentDescription = more }) { Text("+") }
         }
+        val intervalLabel = stringResource(R.string.interval_seconds_label)
+        Slider(value = interval.toFloat(), onValueChange = { interval = it.roundToInt() },
+            onValueChangeFinished = { onInterval(interval) }, valueRange = 1f..30f, steps = 28,
+            enabled = !settings.loading, modifier = Modifier.fillMaxWidth().testTag("interval").semantics { contentDescription = intervalLabel })
+        Text(stringResource(R.string.visual_brief, (settings.config().copy(intervalSeconds = interval).exposureMillis / 1000).toInt()), color = Muted)
+        ConfigurationSummary(settings.config().copy(intervalSeconds = interval))
+        SettingsNotices(settings, onRetry)
+        QuietButton(stringResource(R.string.back), back, "settings_done", Modifier.fillMaxWidth())
+    }
+}
+
+@Composable private fun HowToPlay(settings: SettingsState, practice: () -> Unit, settingsAction: () -> Unit, back: () -> Unit) {
+    val config = settings.config()
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("help_screen"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        QuietButton(stringResource(R.string.back), back, "help_back")
+        PageTitle(stringResource(R.string.how_to_play))
+        ConfigurationSummary(config)
+        Text(pluralStringResource(R.plurals.look_back, config.level, config.level), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.turns_not_seconds))
+        TypeInstructions(config.modeMask, config.level)
+        Text(stringResource(R.string.help_types))
+        HelpExample(config)
+        Text(stringResource(R.string.help_answer_title), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.help_answer))
+        Text(stringResource(R.string.help_timing_title), style = MaterialTheme.typography.titleLarge)
+        Text(pluralStringResource(R.plurals.help_warmup, config.level, config.level))
+        Text(stringResource(R.string.help_timing, config.sessionLength,
+            pluralStringResource(R.plurals.seconds_duration, config.intervalSeconds, config.intervalSeconds),
+            pluralStringResource(R.plurals.seconds_duration, (config.exposureMillis / 1000).toInt(), (config.exposureMillis / 1000).toInt()),
+            pluralStringResource(R.plurals.seconds_duration, ((config.intervalMillis - config.exposureMillis) / 1000).toInt(), ((config.intervalMillis - config.exposureMillis) / 1000).toInt())))
+        Text(stringResource(R.string.timing_detail, pluralStringResource(R.plurals.seconds_duration, config.intervalSeconds, config.intervalSeconds),
+            pluralStringResource(R.plurals.seconds_duration, (config.exposureMillis / 1000).toInt(), (config.exposureMillis / 1000).toInt())))
+        Text(stringResource(R.string.visual_requirement))
+        Text(stringResource(R.string.help_results_title), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.help_results))
+        Text(stringResource(R.string.results_baseline))
+        Text(stringResource(R.string.help_graphs))
+        Text(stringResource(R.string.practice_description))
+        Text(stringResource(R.string.practice_length_note))
+        ActionButton(stringResource(R.string.practice_invitation), practice, !settings.loading, "help_practice")
+        QuietButton(stringResource(R.string.change_settings), settingsAction, "help_settings", Modifier.fillMaxWidth())
+    }
+}
+
+@Composable private fun HelpExample(config: SessionConfig) {
+    Text(stringResource(R.string.worked_example), style = MaterialTheme.typography.titleLarge)
+    // Each diagram has an equivalent textual description, including the exact reference gap.
+    for (index in 0..config.level) {
+        val first = index == 0
+        val current = index == config.level
+        val values = config.types.associateWith { type -> when (type) {
+            StimulusType.POSITION -> if (first || current) 0 else 8
+            StimulusType.COLOUR -> if (first || current) 1 else 5
+            StimulusType.NUMBER -> if (first) 6 else if (current) 3 else 1
+        } }
+        val label = if (first) pluralStringResource(R.plurals.example_reference, config.level, config.level) else if (current)
+            stringResource(R.string.this_turn) else stringResource(R.string.example_between, index)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            StimulusView(values, config.modeMask, Modifier.size(88.dp), "help_example_$index")
+            Column(Modifier.weight(1f)) {
+                Text(label, fontWeight = FontWeight.SemiBold)
+                Text(config.types.map { "${typeLabel(it)}: ${valueLabel(it, values.getValue(it))}" }.joinToString(" · "))
+            }
+        }
+    }
+    config.types.forEach { type ->
+        Text(stringResource(if (type == StimulusType.NUMBER) R.string.example_wait_type else R.string.example_match_type, typeLabel(type)))
     }
 }
 
@@ -178,6 +243,7 @@ internal class HomeUiState { var helpExpanded by mutableStateOf(false) }
     if (settings.saving) Text(stringResource(R.string.settings_saving), Modifier.testTag("settings_saving"))
     settings.notice?.let { notice ->
         Text(stringResource(when (notice) {
+            SettingsNotice.LENGTH_RESET -> R.string.length_reset
             SettingsNotice.INTERVAL_RESET -> R.string.interval_reset
             SettingsNotice.SETTINGS_RESET -> R.string.settings_any_reset
             SettingsNotice.RESET -> R.string.settings_reset
