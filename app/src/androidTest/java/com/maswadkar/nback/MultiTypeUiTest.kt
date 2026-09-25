@@ -69,7 +69,7 @@ class MultiTypeUiTest {
                 }
             }
     }
-    @Test fun independentTogglesPreventEmptySelectionAndOnlyActiveButtonsAppear() {
+    @CriticalCi @Test fun independentTogglesPreventEmptySelectionAndOnlyActiveButtonsAppear() {
         compose.onNodeWithTag("settings").performScrollTo().performClick()
         compose.onNodeWithTag("type_1").assertIsNotEnabled()
         compose.onNodeWithTag("type_2").performScrollTo().performClick()
@@ -139,7 +139,7 @@ class MultiTypeUiTest {
         }
     }
 
-    @Test fun resultsExposeEachTypeWithoutFabricatingInactiveScores() {
+    @CriticalCi @Test fun resultsExposeEachTypeWithoutFabricatingInactiveScores() {
         compose.runOnIdle { game.start(modeMask = 6); time = 66000; game.advance(); publish() }
         assertEquals(SessionScreen.RESULTS, game.state.screen)
         compose.onNodeWithTag("accuracy").assertDoesNotExist()

@@ -38,6 +38,9 @@ Install the prerequisites in [toolchain setup](docs/toolchain.md), then:
 ./scripts/test-failure-gate.sh
 ```
 
+Routine CI runs 26 critical Android tests; the complete suite is available manually
+and required before releases. See [CI coverage](docs/development.md#ci-coverage-and-speed).
+
 Start an Android emulator from Android Studio's Device Manager. Select its serial
 from `adb devices`, then:
 

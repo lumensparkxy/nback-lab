@@ -75,7 +75,7 @@ class HistoryCoordinatorTest {
             assertEquals(multiRecord("one"), main { history.state.records.single() })
         } finally { job.cancelAndJoin() }
     }
-    @Test fun clearCutoffOrdersPendingWritesAndNeverResurrectsOldHandles() = runBlocking<Unit> {
+    @CriticalCi @Test fun clearCutoffOrdersPendingWritesAndNeverResurrectsOldHandles() = runBlocking<Unit> {
         val job = SupervisorJob(); val store = ControlledStore()
         val history = main { HistoryCoordinator(store, CoroutineScope(job + Dispatchers.Main.immediate)) }
         try {
@@ -138,7 +138,7 @@ class HistoryCoordinatorTest {
         assertEquals(SaveStatus.PENDING, main { history.state.entries["one"]?.status })
         assertTrue(main { history.state.clearing }); assertTrue(store.rows.isEmpty())
     }
-    @Test fun everyTerminalEventCapturesOnceAtEveryLevelAndViewModelClearDoesNotCancelSave() = runBlocking<Unit> {
+    @CriticalCi @Test fun everyTerminalEventCapturesOnceAtEveryLevelAndViewModelClearDoesNotCancelSave() = runBlocking<Unit> {
         for (level in 1..3) for (event in listOf("refresh", "match", "back", "interrupt", "home")) {
             val job = SupervisorJob(); val store = ControlledStore(); var time = 0L; var ids = 0; var wallCalls = 0
             val history = main { HistoryCoordinator(store, CoroutineScope(job + Dispatchers.Main.immediate)) }
@@ -227,7 +227,7 @@ class HistoryCoordinatorTest {
         }
     }
 
-    @Test fun restartAndPlayAgainUseNewIdsPracticeAndPartialSessionsNeverSave() = runBlocking<Unit> {
+    @CriticalCi @Test fun restartAndPlayAgainUseNewIdsPracticeAndPartialSessionsNeverSave() = runBlocking<Unit> {
         val job = SupervisorJob(); val history = main { testHistory(CoroutineScope(job + Dispatchers.Main.immediate)) }
         val holder = ViewModelStore(); var time = 0L; var ids = 0
         val preferences = object : LevelSettings {

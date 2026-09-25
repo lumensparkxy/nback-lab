@@ -48,7 +48,7 @@ class AdsPrivacyTest {
         compose.onNodeWithText("Close").assertIsDisplayed().performClick()
         compose.onNodeWithTag("start").performScrollTo().assertIsDisplayed()
     }
-    @Test fun consentAndRequestConfigurationAreIndependentAndPermissionGated() {
+    @CriticalCi @Test fun consentAndRequestConfigurationAreIndependentAndPermissionGated() {
         compose.runOnIdle {
             val consent = Consent(); var initialized = 0; var config: RequestConfiguration? = null
             val runtime = AdsRuntime(compose.activity, true, consent,
@@ -64,7 +64,7 @@ class AdsPrivacyTest {
             assertEquals(RequestConfiguration.MAX_AD_CONTENT_RATING_PG, config.maxAdContentRating)
         }
     }
-    @Test fun lateLoadsPrivacyChangesAndDeferredFormsNeverInterruptPlay() {
+    @CriticalCi @Test fun lateLoadsPrivacyChangesAndDeferredFormsNeverInterruptPlay() {
         compose.runOnIdle {
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
             try {

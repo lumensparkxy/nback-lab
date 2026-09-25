@@ -11,7 +11,7 @@ import org.junit.Test
 
 class MultiTypeLifecycleTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    @Test fun combinedConfigurationSurvivesRecreationAndInterruptsAsOneSession() {
+    @CriticalCi @Test fun combinedConfigurationSurvivesRecreationAndInterruptsAsOneSession() {
         val model = compose.activity.session
         compose.waitUntil(10000) { !model.settings.loading }
         val original = model.settings

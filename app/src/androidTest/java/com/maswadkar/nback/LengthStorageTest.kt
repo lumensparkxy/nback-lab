@@ -29,7 +29,7 @@ class LengthStorageTest {
         statements.forEach { q -> db.prepare(q).use { it.step() } }
     } }
     private suspend fun rejects(block:suspend ()->Unit) { try { block();fail("Invalid history accepted") } catch (_:Exception) {} }
-    @Test fun v3MigrationPreservesAllLegacyRulesAndNewLengthsRoundTrip()=runBlocking {
+    @CriticalCi @Test fun v3MigrationPreservesAllLegacyRulesAndNewLengthsRoundTrip()=runBlocking {
         val file=file();val store=RoomHistoryStore(context,file)
         try {
             sql(file,"CREATE TABLE sessions (id TEXT NOT NULL PRIMARY KEY, completedAt INTEGER NOT NULL, level INTEGER NOT NULL, rulesVersion INTEGER NOT NULL, hits INTEGER NOT NULL, misses INTEGER NOT NULL, falseAlarms INTEGER NOT NULL, correctRejections INTEGER NOT NULL)",
@@ -50,7 +50,7 @@ class LengthStorageTest {
             store.clear();assertTrue(store.load().isEmpty())
         } finally { store.close();file.parentFile!!.deleteRecursively() }
     }
-    @Test fun invalidRawLengthsAndOutcomesCannotBeReadOverwrittenOrCleared()=runBlocking {
+    @CriticalCi @Test fun invalidRawLengthsAndOutcomesCannotBeReadOverwrittenOrCleared()=runBlocking {
         val changes=listOf("sessionLength=11","sessionLength=10.5","sessionLength='long'","sessionLength=x'0a'",
             "sessionLength=9223372036854775807","rulesVersion=3", "sessionLength=20",
             "positionOutcomes=positionOutcomes || char(0)","positionOutcomes='MMMCCCCCCX'",
