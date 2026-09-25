@@ -72,7 +72,8 @@ must independently pass for the submitted PR head. Local success does not stand
 in for a hosted check, a production release or an assessment of cognitive benefit.
 
 Application source was committed as `d9bf0b4`; subsequent changes only complete this
-validation record. Automatic approval review blocked pushing the branch and
-creating a draft PR because publication needs explicit owner approval. The branch
-is local, hosted CI has not run, and issue #35 remains open. The concrete next step
-is owner authorization to push `codex/session-experience` and open its prepared PR.
+validation record. Automatic approval review initially blocked publication pending
+explicit owner approval. The owner subsequently authorized pushing
+`codex/session-experience` and opening its prepared PR. Hosted CI results belong to
+that PR head; issue #35 remains open until accepted delivery. Merge and release
+require separate authorization.
