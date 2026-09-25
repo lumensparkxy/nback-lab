@@ -60,7 +60,7 @@ class SessionExperienceTest {
         click("progress_tab")
         compose.waitUntil(10000) { compose.onAllNodesWithTag("group_menu").fetchSemanticsNodes().isNotEmpty() }
     }
-    @Test fun settingsHelpAndVariableCompletionUseSameSnapshotAndSaveOnce() {
+    @CriticalCi @Test fun settingsHelpAndVariableCompletionUseSameSnapshotAndSaveOnce() {
         launch()
         compose.onNodeWithTag("level_2").assertDoesNotExist()
         click("settings")
@@ -187,7 +187,7 @@ class SessionExperienceTest {
         click("home");assertEquals(1,normalHome);assertEquals(1,adHome)
     }
 
-    @Test fun equalContentRefreshFinishesPreparingEmptyAndPopulatedHistory() {
+    @CriticalCi @Test fun equalContentRefreshFinishesPreparingEmptyAndPopulatedHistory() {
         val records=mutableStateOf<List<HistoryRecord>>(emptyList(),androidx.compose.runtime.referentialEqualityPolicy())
         compose.setContent {
             val prepared=preparedHistory(records.value,HistoryNavigation())

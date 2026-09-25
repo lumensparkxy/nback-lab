@@ -213,7 +213,7 @@ class LevelSettingsTest {
         } finally { main { holder.clear() } }
     }
 
-    @Test fun dataStoreRoundTripsMissingInvalidTypesRangesAndCorruption() = runBlocking {
+    @CriticalCi @Test fun dataStoreRoundTripsMissingInvalidTypesRangesAndCorruption() = runBlocking {
         val cache = InstrumentationRegistry.getInstrumentation().targetContext.cacheDir
         val dir = File(cache, "settings-test-${System.nanoTime()}").apply { mkdirs() }
         val file = File(dir, "level.preferences_pb")

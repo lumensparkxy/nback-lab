@@ -39,7 +39,7 @@ class MultiTypeStorageTest {
     private suspend fun fails(block: suspend () -> Unit) {
         try { block(); fail("Expected explicit storage failure") } catch (_: Exception) { }
     }
-    @Test fun realV1MigrationPreservesEveryFieldAndSupportsNewModesAfterReopen() = runBlocking {
+    @CriticalCi @Test fun realV1MigrationPreservesEveryFieldAndSupportsNewModesAfterReopen() = runBlocking {
         val file = file(); legacy(file); var store = RoomHistoryStore(context, file)
         try {
             val old = listOf(sampleRecord("old-3", 3, 1_750_000_000_001L).copy(hits = 0, misses = 6, falseAlarms = 0, correctRejections = 14), sampleRecord("old-1", 1))

@@ -54,7 +54,7 @@ class PracticeInteractionTest {
         assertEquals(1, retries)
     }
 
-    @Test fun practiceExplanationsAndExplicitCompletionActionsStaySeparate() {
+    @CriticalCi @Test fun practiceExplanationsAndExplicitCompletionActionsStaySeparate() {
         practice()
         var start = 6_000L
         repeat(4) { step ->

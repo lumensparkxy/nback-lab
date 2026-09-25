@@ -9,7 +9,7 @@ import org.junit.Test
 
 class IntervalLifecycleTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    @Test fun intervalSnapshotSurvivesRecreationInterruptionAndRestart() {
+    @CriticalCi @Test fun intervalSnapshotSurvivesRecreationInterruptionAndRestart() {
         val model = compose.activity.session
         compose.waitUntil(10000) { !model.settings.loading }
         val original = model.settings.intervalSeconds

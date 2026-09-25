@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      android-suite:
+        description: Android coverage (full is required before a release)
+        type: choice
+        options: [critical, full]
+        default: full
 
 permissions:
   contents: read
@@ -91,14 +97,16 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Emulator smoke tests
+      - name: Critical Android tests (full on request)
+        env:
+          ANDROID_CI_SUITE: ${{ inputs.android-suite || 'critical' }}
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2
         with:
           api-level: 36
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: ANDROID_SERIAL=emulator-5554 ./scripts/emulator-test.sh
+          script: ANDROID_SERIAL=emulator-5554 python3 scripts/ci_android_tests.py "$ANDROID_CI_SUITE"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
