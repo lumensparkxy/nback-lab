@@ -34,6 +34,23 @@ separate owner decisions.
   failed before the fix. Prepared snapshots now use identity equality, allowing
   Compose to publish the new source identity while retaining stale-data guards.
   This adds one Android method, bringing the full expected inventory to 86.
+- After the final source fix, affected Android classes passed with exact method
+  inventories: HistoryUiTest 6/6, SessionExperienceTest 8/8, GuidedDesignTest 4/4
+  and GuidedLifecycleTest 3/3. Across the full run and these reruns, all 86 expected
+  methods have a passing latest result; this is not a claim of one fresh 86-test
+  full run. Standard verification passed again on the final application code.
+- The deliberate failure gate rejected its expected assertion and restored a
+  passing ordinary engine run. Fresh-app manual Results/Progress navigation
+  confirmed the empty-history loading regression is fixed.
+- TalkBack service binding and touch exploration were verified. Settings controls,
+  selected Results tabs and How to Play text/examples were inspected, with actions
+  activated under TalkBack. This checks focus/navigation and semantics, not human
+  spoken-output quality or an equivalent nonvisual gameplay experience. Original
+  accessibility settings were restored.
+- A real 10-turn, one-second session completed in 12 seconds including warm-up,
+  saved once, and appeared as a 70% progress point with hits 0/3 and false alarms
+  0/7. The chart and exact-data card were inspected at 200% text in landscape.
+  Original font and rotation settings were restored and read back.
 - Independent review found and resolved selected-group retention and an outdated
   Home-title assertion. Follow-up reviews cleared those fixes, the large-text
   corner change and the asynchronous-list test synchronization.
@@ -53,3 +70,9 @@ Ignored `artifacts/session-experience/` evidence includes source manifests,
 individual JUnit reports, screenshots and review/command summaries. Hosted CI
 must independently pass for the submitted PR head. Local success does not stand
 in for a hosted check, a production release or an assessment of cognitive benefit.
+
+Application source was committed as `d9bf0b4`; subsequent changes only complete this
+validation record. Automatic approval review blocked pushing the branch and
+creating a draft PR because publication needs explicit owner approval. The branch
+is local, hosted CI has not run, and issue #35 remains open. The concrete next step
+is owner authorization to push `codex/session-experience` and open its prepared PR.
