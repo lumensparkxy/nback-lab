@@ -16,6 +16,7 @@ import androidx.room.Transaction
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.driver.bundled.SQLITE_OPEN_READONLY
 import com.maswadkar.nback.engine.decodeOutcomes
+import com.maswadkar.nback.engine.SessionRules
 import com.maswadkar.nback.engine.SessionResult
 import com.maswadkar.nback.engine.StimulusType
 import com.maswadkar.nback.engine.activeTypes
@@ -46,6 +47,7 @@ data class HistoryRecord(
     @ColumnInfo(defaultValue = "0") val numberMisses: Int = 0,
     @ColumnInfo(defaultValue = "0") val numberFalseAlarms: Int = 0,
     @ColumnInfo(defaultValue = "0") val numberCorrectRejections: Int = 0,
+    @ColumnInfo(defaultValue = "20") val sessionLength: Int = 20,
     @ColumnInfo(defaultValue = "3") val intervalSeconds: Int = 3,
     @ColumnInfo(defaultValue = "''") val positionOutcomes: String = "",
     @ColumnInfo(defaultValue = "''") val colourOutcomes: String = "",
@@ -63,18 +65,19 @@ data class HistoryRecord(
         StimulusType.NUMBER -> SessionResult(numberHits, numberMisses, numberFalseAlarms, numberCorrectRejections)
     }
     fun validated(): HistoryRecord {
-        require(id.isNotBlank() && level in 1..3 && rulesVersion in 1..3)
+        require(id.isNotBlank() && level in 1..3 && rulesVersion in 1..4)
+        require(sessionLength in SessionRules.LENGTHS && (rulesVersion == 4 || sessionLength == 20))
         require(modeMask in 1..7 && (rulesVersion != 1 || modeMask == 1))
-        require(intervalSeconds in 1..30 && (rulesVersion == 3 || intervalSeconds == 3))
+        require(intervalSeconds in 1..30 && (rulesVersion >= 3 || intervalSeconds == 3))
         StimulusType.entries.forEach { type ->
             val result = counts(type)
             require(listOf(result.hits, result.misses, result.falseAlarms, result.correctRejections).all { it >= 0 })
             if (modeMask and type.bit != 0) {
-                require(result.hits.toLong() + result.misses == 6L && result.falseAlarms.toLong() + result.correctRejections == 14L)
+                require(result.hits.toLong() + result.misses == sessionLength * 3L / 10 && result.falseAlarms.toLong() + result.correctRejections == sessionLength * 7L / 10)
             } else require(result == SessionResult())
             val encoded = encodedOutcomes(type)
-            if (rulesVersion == 3 && modeMask and type.bit != 0) {
-                require(encoded.length == 20)
+            if (rulesVersion >= 3 && modeMask and type.bit != 0) {
+                require(encoded.length == sessionLength)
                 require(decodeOutcomes(encoded).fold(SessionResult()) { total, outcome -> total.record(outcome) } == result)
             } else require(encoded.isEmpty())
         }
@@ -154,9 +157,38 @@ private const val INVALID_V3_ROW = "typeof(id) != 'text' OR trim(id) = '' OR " +
     " OR typeof(colourOutcomes) != 'text' OR (rulesVersion = 3 AND (modeMask & 2) != 0 AND (length(colourOutcomes) != 20 OR length(CAST(colourOutcomes AS BLOB)) != 20 OR colourOutcomes GLOB '*[^HMFC]*' OR length(colourOutcomes) - length(replace(colourOutcomes, 'H', '')) != colourHits OR length(colourOutcomes) - length(replace(colourOutcomes, 'M', '')) != colourMisses OR length(colourOutcomes) - length(replace(colourOutcomes, 'F', '')) != colourFalseAlarms OR length(colourOutcomes) - length(replace(colourOutcomes, 'C', '')) != colourCorrectRejections)) OR ((rulesVersion < 3 OR (modeMask & 2) = 0) AND length(CAST(colourOutcomes AS BLOB)) != 0)" +
     " OR typeof(numberOutcomes) != 'text' OR (rulesVersion = 3 AND (modeMask & 4) != 0 AND (length(numberOutcomes) != 20 OR length(CAST(numberOutcomes AS BLOB)) != 20 OR numberOutcomes GLOB '*[^HMFC]*' OR length(numberOutcomes) - length(replace(numberOutcomes, 'H', '')) != numberHits OR length(numberOutcomes) - length(replace(numberOutcomes, 'M', '')) != numberMisses OR length(numberOutcomes) - length(replace(numberOutcomes, 'F', '')) != numberFalseAlarms OR length(numberOutcomes) - length(replace(numberOutcomes, 'C', '')) != numberCorrectRejections)) OR ((rulesVersion < 3 OR (modeMask & 4) = 0) AND length(CAST(numberOutcomes AS BLOB)) != 0)"
 
+private const val INVALID_V4_ROW = "typeof(id) != 'text' OR trim(id) = '' OR " +
+    "typeof(completedAt) != 'integer' OR completedAt < -62135596800000 OR completedAt > 253402300799999 OR " +
+    "typeof(level) != 'integer' OR level NOT BETWEEN 1 AND 3 OR " +
+    "typeof(rulesVersion) != 'integer' OR rulesVersion NOT IN (1,2,3,4) OR " +
+    "typeof(modeMask) != 'integer' OR modeMask NOT BETWEEN 1 AND 7 OR (rulesVersion = 1 AND modeMask != 1) OR " +
+    "typeof(hits) != 'integer' OR hits NOT BETWEEN 0 AND (sessionLength * 3 / 10) OR " +
+    "typeof(misses) != 'integer' OR misses NOT BETWEEN 0 AND (sessionLength * 3 / 10) OR " +
+    "typeof(falseAlarms) != 'integer' OR falseAlarms NOT BETWEEN 0 AND (sessionLength * 7 / 10) OR " +
+    "typeof(correctRejections) != 'integer' OR correctRejections NOT BETWEEN 0 AND (sessionLength * 7 / 10) OR " +
+    "((modeMask & 1) != 0 AND (hits + misses != (sessionLength * 3 / 10) OR falseAlarms + correctRejections != (sessionLength * 7 / 10))) OR " +
+    "((modeMask & 1) = 0 AND (hits != 0 OR misses != 0 OR falseAlarms != 0 OR correctRejections != 0)) OR " +
+    "typeof(colourHits) != 'integer' OR colourHits NOT BETWEEN 0 AND (sessionLength * 3 / 10) OR " +
+    "typeof(colourMisses) != 'integer' OR colourMisses NOT BETWEEN 0 AND (sessionLength * 3 / 10) OR " +
+    "typeof(colourFalseAlarms) != 'integer' OR colourFalseAlarms NOT BETWEEN 0 AND (sessionLength * 7 / 10) OR " +
+    "typeof(colourCorrectRejections) != 'integer' OR colourCorrectRejections NOT BETWEEN 0 AND (sessionLength * 7 / 10) OR " +
+    "((modeMask & 2) != 0 AND (colourHits + colourMisses != (sessionLength * 3 / 10) OR colourFalseAlarms + colourCorrectRejections != (sessionLength * 7 / 10))) OR " +
+    "((modeMask & 2) = 0 AND (colourHits != 0 OR colourMisses != 0 OR colourFalseAlarms != 0 OR colourCorrectRejections != 0)) OR " +
+    "typeof(numberHits) != 'integer' OR numberHits NOT BETWEEN 0 AND (sessionLength * 3 / 10) OR " +
+    "typeof(numberMisses) != 'integer' OR numberMisses NOT BETWEEN 0 AND (sessionLength * 3 / 10) OR " +
+    "typeof(numberFalseAlarms) != 'integer' OR numberFalseAlarms NOT BETWEEN 0 AND (sessionLength * 7 / 10) OR " +
+    "typeof(numberCorrectRejections) != 'integer' OR numberCorrectRejections NOT BETWEEN 0 AND (sessionLength * 7 / 10) OR " +
+    "((modeMask & 4) != 0 AND (numberHits + numberMisses != (sessionLength * 3 / 10) OR numberFalseAlarms + numberCorrectRejections != (sessionLength * 7 / 10))) OR " +
+    "((modeMask & 4) = 0 AND (numberHits != 0 OR numberMisses != 0 OR numberFalseAlarms != 0 OR numberCorrectRejections != 0))" +
+    " OR typeof(intervalSeconds) != 'integer' OR intervalSeconds NOT BETWEEN 1 AND 30 OR (rulesVersion < 3 AND intervalSeconds != 3)" +
+    " OR typeof(positionOutcomes) != 'text' OR (rulesVersion >= 3 AND (modeMask & 1) != 0 AND (length(positionOutcomes) != sessionLength OR length(CAST(positionOutcomes AS BLOB)) != sessionLength OR positionOutcomes GLOB '*[^HMFC]*' OR length(positionOutcomes) - length(replace(positionOutcomes, 'H', '')) != hits OR length(positionOutcomes) - length(replace(positionOutcomes, 'M', '')) != misses OR length(positionOutcomes) - length(replace(positionOutcomes, 'F', '')) != falseAlarms OR length(positionOutcomes) - length(replace(positionOutcomes, 'C', '')) != correctRejections)) OR ((rulesVersion < 3 OR (modeMask & 1) = 0) AND length(CAST(positionOutcomes AS BLOB)) != 0)" +
+    " OR typeof(colourOutcomes) != 'text' OR (rulesVersion >= 3 AND (modeMask & 2) != 0 AND (length(colourOutcomes) != sessionLength OR length(CAST(colourOutcomes AS BLOB)) != sessionLength OR colourOutcomes GLOB '*[^HMFC]*' OR length(colourOutcomes) - length(replace(colourOutcomes, 'H', '')) != colourHits OR length(colourOutcomes) - length(replace(colourOutcomes, 'M', '')) != colourMisses OR length(colourOutcomes) - length(replace(colourOutcomes, 'F', '')) != colourFalseAlarms OR length(colourOutcomes) - length(replace(colourOutcomes, 'C', '')) != colourCorrectRejections)) OR ((rulesVersion < 3 OR (modeMask & 2) = 0) AND length(CAST(colourOutcomes AS BLOB)) != 0)" +
+    " OR typeof(numberOutcomes) != 'text' OR (rulesVersion >= 3 AND (modeMask & 4) != 0 AND (length(numberOutcomes) != sessionLength OR length(CAST(numberOutcomes AS BLOB)) != sessionLength OR numberOutcomes GLOB '*[^HMFC]*' OR length(numberOutcomes) - length(replace(numberOutcomes, 'H', '')) != numberHits OR length(numberOutcomes) - length(replace(numberOutcomes, 'M', '')) != numberMisses OR length(numberOutcomes) - length(replace(numberOutcomes, 'F', '')) != numberFalseAlarms OR length(numberOutcomes) - length(replace(numberOutcomes, 'C', '')) != numberCorrectRejections)) OR ((rulesVersion < 3 OR (modeMask & 4) = 0) AND length(CAST(numberOutcomes AS BLOB)) != 0)" +
+    " OR typeof(sessionLength) != 'integer' OR sessionLength NOT IN (10,20,30,50) OR (rulesVersion < 4 AND sessionLength != 20)"
+
 @Dao
 abstract class HistoryDao {
-    @Query("SELECT EXISTS(SELECT 1 FROM sessions WHERE " + INVALID_V3_ROW + ")")
+    @Query("SELECT EXISTS(SELECT 1 FROM sessions WHERE " + INVALID_V4_ROW + ")")
     abstract suspend fun hasInvalidRows(): Boolean
     @Transaction
     open suspend fun validatedAll(): List<HistoryRecord> {
@@ -184,7 +216,7 @@ abstract class HistoryDao {
     }
 }
 
-@Database(entities = [HistoryRecord::class], version = 3, exportSchema = true)
+@Database(entities = [HistoryRecord::class], version = 4, exportSchema = true)
 abstract class HistoryDatabase : RoomDatabase() {
     abstract fun sessions(): HistoryDao
 }
@@ -197,7 +229,7 @@ class RoomHistoryStore(private val context: Context, private val file: File) : H
         database?.let { return it }
         preflight(file)
         return Room.databaseBuilder<HistoryDatabase>(context.applicationContext, file.absolutePath)
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
             .setDriver(BundledSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
             .build().also { database = it }
@@ -219,7 +251,8 @@ class RoomHistoryStore(private val context: Context, private val file: File) : H
     companion object {
         internal const val V1_IDENTITY = "a865fd8f7ff85115a8d5954391aa19d1"
         internal const val V2_IDENTITY = "e68ad41ba3d0013275bdbdb7a0293598"
-        internal const val IDENTITY = "b97dde45b9418c7906942fe391ac7b11"
+        internal const val V3_IDENTITY = "b97dde45b9418c7906942fe391ac7b11"
+        internal const val IDENTITY = "4ffc6f8bf08bcf8e0907a6f52164290c"
         private val addedColumns = listOf("modeMask", "colourHits", "colourMisses", "colourFalseAlarms",
             "colourCorrectRejections", "numberHits", "numberMisses", "numberFalseAlarms", "numberCorrectRejections")
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -238,6 +271,11 @@ class RoomHistoryStore(private val context: Context, private val file: File) : H
                 }
             }
         }
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(connection: SQLiteConnection) {
+                connection.prepare("ALTER TABLE sessions ADD COLUMN sessionLength INTEGER NOT NULL DEFAULT 20").use { it.step() }
+            }
+        }
         internal fun preflight(file: File) {
             if (!file.exists()) return
             require(file.length() > 0) { "Empty history store" }
@@ -247,10 +285,10 @@ class RoomHistoryStore(private val context: Context, private val file: File) : H
                 }
                 val schemaVersion = connection.prepare("PRAGMA user_version").use { version ->
                     require(version.step())
-                    version.getLong(0).also { require(it in 1L..3L) { "Unsupported history schema" } }
+                    version.getLong(0).also { require(it in 1L..4L) { "Unsupported history schema" } }
                 }
                 connection.prepare("SELECT identity_hash FROM room_master_table WHERE id = 42").use { identity ->
-                    require(identity.step() && identity.getText(0) == when (schemaVersion) { 1L -> V1_IDENTITY; 2L -> V2_IDENTITY; else -> IDENTITY }) { "Incompatible history schema" }
+                    require(identity.step() && identity.getText(0) == when (schemaVersion) { 1L -> V1_IDENTITY; 2L -> V2_IDENTITY; 3L -> V3_IDENTITY; else -> IDENTITY }) { "Incompatible history schema" }
                 }
                 val columns = linkedMapOf<String, String>()
                 connection.prepare("PRAGMA table_info(sessions)").use { fields ->
@@ -259,8 +297,10 @@ class RoomHistoryStore(private val context: Context, private val file: File) : H
                         require(fields.getLong(3) == 1L)
                         if (schemaVersion >= 2L && name in addedColumns) {
                             require(!fields.isNull(4) && fields.getText(4) == if (name == "modeMask") "1" else "0")
-                        } else if (schemaVersion == 3L && (name == "intervalSeconds" || name in outcomeColumns)) {
+                        } else if (schemaVersion >= 3L && (name == "intervalSeconds" || name in outcomeColumns)) {
                             require(!fields.isNull(4) && fields.getText(4) == if (name == "intervalSeconds") "3" else "''")
+                        } else if (schemaVersion == 4L && name == "sessionLength") {
+                            require(!fields.isNull(4) && fields.getText(4) == "20")
                         } else require(fields.isNull(4))
                         require(fields.getLong(5) == if (name == "id") 1L else 0L)
                         columns[name] = fields.getText(2)
@@ -270,9 +310,10 @@ class RoomHistoryStore(private val context: Context, private val file: File) : H
                     "rulesVersion" to "INTEGER", "hits" to "INTEGER", "misses" to "INTEGER",
                     "falseAlarms" to "INTEGER", "correctRejections" to "INTEGER") +
                     (if (schemaVersion >= 2L) addedColumns.associateWith { "INTEGER" } else emptyMap()) +
-                    (if (schemaVersion == 3L) mapOf("intervalSeconds" to "INTEGER") + outcomeColumns.associateWith { "TEXT" } else emptyMap())
+                    (if (schemaVersion >= 3L) mapOf("intervalSeconds" to "INTEGER") + outcomeColumns.associateWith { "TEXT" } else emptyMap()) +
+                    (if (schemaVersion == 4L) mapOf("sessionLength" to "INTEGER") else emptyMap())
                 require(columns == expectedColumns) { "Incompatible history columns" }
-                val predicate = when (schemaVersion) { 1L -> INVALID_V1_ROW; 2L -> INVALID_V2_ROW; else -> INVALID_V3_ROW }
+                val predicate = when (schemaVersion) { 1L -> INVALID_V1_ROW; 2L -> INVALID_V2_ROW; 3L -> INVALID_V3_ROW; else -> INVALID_V4_ROW }
                 connection.prepare("SELECT EXISTS(SELECT 1 FROM sessions WHERE $predicate)").use { invalid ->
                     require(invalid.step() && invalid.getLong(0) == 0L) { "Invalid history data" }
                 }

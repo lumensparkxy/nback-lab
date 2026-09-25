@@ -26,7 +26,7 @@ class LaunchSmokeTest {
         compose.waitUntil(10000) { !model.settings.loading }
         original = model.settings
         compose.runOnIdle {
-            model.home(); model.selectInterval(3)
+            model.home(); model.selectInterval(3); model.selectLength(20)
             if (model.settings.modeMask and 1 == 0) model.toggleType(StimulusType.POSITION)
             StimulusType.entries.filter { it != StimulusType.POSITION && model.settings.modeMask and it.bit != 0 }.forEach(model::toggleType)
         }
@@ -36,7 +36,7 @@ class LaunchSmokeTest {
         val saved = original ?: return
         val model = compose.activity.session
         compose.runOnIdle {
-            model.home(); model.selectLevel(saved.level); model.selectInterval(saved.intervalSeconds)
+            model.home(); model.selectLevel(saved.level); model.selectInterval(saved.intervalSeconds); model.selectLength(saved.sessionLength)
             StimulusType.entries.filter { saved.modeMask and it.bit != 0 && model.settings.modeMask and it.bit == 0 }.forEach(model::toggleType)
             StimulusType.entries.filter { saved.modeMask and it.bit == 0 && model.settings.modeMask and it.bit != 0 }.forEach(model::toggleType)
         }
@@ -45,7 +45,9 @@ class LaunchSmokeTest {
     }
     private fun start(level: Int = 2) {
         compose.waitUntil(10_000) { !compose.activity.session.settings.loading }
+        compose.onNodeWithTag("settings").performScrollTo().performClick()
         compose.onNodeWithTag("level_$level").performScrollTo().performClick()
+        compose.onNodeWithTag("settings_back").performScrollTo().performClick()
         compose.onNodeWithTag("start").performScrollTo().performClick()
     }
 
@@ -63,7 +65,9 @@ class LaunchSmokeTest {
 
     @Test fun practiceFeedbackSurvivesRotationButBackAndBackgroundInterrupt() {
         compose.waitUntil(10_000) { !compose.activity.session.settings.loading }
+        compose.onNodeWithTag("settings").performScrollTo().performClick()
         compose.onNodeWithTag("level_1").performScrollTo().performClick()
+        compose.onNodeWithTag("settings_back").performScrollTo().performClick()
         compose.onNodeWithTag("practice").performScrollTo().performClick()
         val model = compose.activity.session
         compose.waitUntil(10_000) { model.state.screen == SessionScreen.PRACTICE_FEEDBACK }
@@ -80,11 +84,12 @@ class LaunchSmokeTest {
         compose.onNodeWithTag("home").performClick()
         compose.onNodeWithTag("practice").performScrollTo().performClick()
         compose.onNodeWithTag("skip").performClick()
+        compose.onNodeWithTag("settings").performScrollTo().performClick()
         compose.onNodeWithTag("level_1").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun instructionsAndWarmupAreAccessible() {
-        compose.onNodeWithText("Set up your next round").assertIsDisplayed()
+        compose.onNodeWithText("Ready for a round?").assertIsDisplayed()
         compose.onNodeWithTag("start").performScrollTo().assertIsDisplayed()
         start()
         compose.onNodeWithText("Warm-up 1/2").assertIsDisplayed()
@@ -142,7 +147,7 @@ class LaunchSmokeTest {
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         compose.onNodeWithText("Session interrupted").assertIsDisplayed()
         compose.onNodeWithTag("home").performClick()
-        compose.onNodeWithText("Set up your next round").assertIsDisplayed()
+        compose.onNodeWithText("Ready for a round?").assertIsDisplayed()
     }
 
     @Test fun realTimedSessionCompletesAndResultsSurviveRecreationAndBackground() {

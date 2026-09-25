@@ -25,12 +25,13 @@ class IntervalUiTest {
         val settings = mutableStateOf(SettingsState(loading = false, modeMask = 7))
         compose.setContent { NBackTheme { SessionContent(SessionState(), {}, {}, {}, settings.value,
             onInterval = { settings.value = settings.value.copy(intervalSeconds = it) }) } }
+        compose.onNodeWithTag("settings").performScrollTo().performClick()
         for ((interval, exposure) in listOf(1 to 1, 7 to 1, 8 to 2, 15 to 2, 16 to 3, 30 to 3)) {
             compose.onNodeWithTag("interval").performScrollTo().performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.SetProgress) { it(interval.toFloat()) }
             compose.runOnIdle { assertEquals(interval, settings.value.intervalSeconds) }
             compose.onNodeWithText("Time per turn · $interval s").assertExists()
             compose.onNodeWithText("Visible for $exposure s · Respond until the next turn").performScrollTo().assertIsDisplayed()
-            compose.onNodeWithText("2 warm-up · 20 scored turns · ${22 * interval} seconds").assertExists()
+            compose.onNodeWithText("2 warm-up turns · ${elapsedLabel(22 * interval * 1000L)} total (minutes:seconds)").assertExists()
         }
         compose.onNodeWithTag("interval_more").performScrollTo().assertIsNotEnabled()
         compose.onNodeWithTag("interval_less").performClick()

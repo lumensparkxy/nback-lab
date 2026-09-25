@@ -70,11 +70,13 @@ class MultiTypeUiTest {
             }
     }
     @Test fun independentTogglesPreventEmptySelectionAndOnlyActiveButtonsAppear() {
+        compose.onNodeWithTag("settings").performScrollTo().performClick()
         compose.onNodeWithTag("type_1").assertIsNotEnabled()
         compose.onNodeWithTag("type_2").performScrollTo().performClick()
         compose.onNodeWithTag("type_1").performScrollTo().assertIsEnabled().performClick()
         compose.onNodeWithTag("type_2").assertIsNotEnabled()
         compose.onNodeWithTag("type_4").performScrollTo().performClick()
+        compose.onNodeWithTag("settings_back").performScrollTo().performClick()
         compose.onNodeWithTag("start").performScrollTo().performClick()
         compose.runOnIdle { assertEquals(6, game.state.config.modeMask); time = 6000; game.advance(); publish() }
         compose.onNodeWithTag("match").assertDoesNotExist()
