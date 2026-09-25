@@ -116,3 +116,21 @@ timelines; rules 1/2 remain legacy summary records. Validate raw SQL types, byte
 and character lengths, allowed codes and exact histogram agreement before reads,
 save, clear and migration. Preserve v1/v2 preflight identities and schema exports.
 New immutable snapshots include outcome strings in identical-retry comparisons.
+
+## F008/F009 extension — 2026-09-25
+
+Owner approval adds schema 4 with `sessionLength INTEGER NOT NULL DEFAULT 20`.
+Migration 3→4 is additive; exported schemas and preflight identities 1–3 remain.
+New completions use rules version 4 and length 10/20/30/50. Each active type has
+exactly 30% targets, 70% non-targets and L chronological outcomes. Legacy rules
+1–3 still require length 20 and their original counts/timeline contracts. Length
+participates in identical-payload retry checks. Raw SQLite predicates validate
+length, numeric types, count invariants and outcome bytes before reads/mutations
+or migration. No destructive fallback or reconstruction of old timelines.
+
+F009 derives comparisons from committed records, with groups keyed by exact
+mode, n, pace and length. Rules 1–4 share the existing scoring meaning at length
+20; future versions need explicit compatibility review. Sorting, filtering and
+score-series preparation run off the UI thread. Charts use one Canvas and exact
+session data uses lazy rows, retaining all records. No aggregate scores, raw taps,
+network analytics or new persistence dependency is introduced.

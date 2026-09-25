@@ -10,7 +10,7 @@ fun decodeOutcomes(value: String): List<Outcome> = value.map {
 }
 data class AccuracyPoint(val scoredTurn: Int, val elapsedMillis: Long, val percentage: Double)
 fun accuracyTimeline(config: SessionConfig, outcomes: List<Outcome>): List<AccuracyPoint> {
-    require(!config.practice && outcomes.size == SessionRules.SCORED_TRIALS)
+    require(!config.practice && outcomes.size == config.scoredTrials)
     var correct = 0
     return outcomes.mapIndexed { index, outcome ->
         if (outcome == Outcome.HIT || outcome == Outcome.CORRECT_REJECTION) correct++

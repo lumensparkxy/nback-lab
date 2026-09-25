@@ -2,6 +2,7 @@
 """Run the critical CI selection or the complete Android suite, failing on missing evidence."""
 from pathlib import Path
 import argparse
+import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -29,8 +30,33 @@ CRITICAL = (
     'MultiTypeStorageTest#realV1MigrationPreservesEveryFieldAndSupportsNewModesAfterReopen',
     'IntervalStorageTest#v2MigrationPreservesOriginalFieldsAndNewTimelinesRoundTrip',
     'IntervalStorageTest#intervalPreferencesRoundTripAndInvalidFieldDoesNotResetLevelOrTypes',
+    'AdsPrivacyTest#consentAndRequestConfigurationAreIndependentAndPermissionGated',
+    'AdsPrivacyTest#lateLoadsPrivacyChangesAndDeferredFormsNeverInterruptPlay',
+    'LengthStorageTest#v3MigrationPreservesAllLegacyRulesAndNewLengthsRoundTrip',
+    'LengthStorageTest#invalidRawLengthsAndOutcomesCannotBeReadOverwrittenOrCleared',
+    'SessionExperienceTest#settingsHelpAndVariableCompletionUseSameSnapshotAndSaveOnce',
+    'SessionExperienceTest#equalContentRefreshFinishesPreparingEmptyAndPopulatedHistory',
 )
 PREFIX = 'com.maswadkar.nback.'
+
+
+def full_inventory():
+    """Discover this repository's one-JUnit-class-per-file Kotlin test methods.
+
+    Reject unsupported declarations instead of silently certifying partial coverage.
+    """
+    expected = []
+    for path in sorted((ROOT / 'app/src/androidTest/java').rglob('*Test.kt')):
+        source = path.read_text()
+        package = re.search(r'^package\s+([\w.]+)', source, re.MULTILINE)
+        classes = re.findall(r'\bclass\s+(\w+Test)\b', source)
+        methods = re.findall(r'@Test\s+fun\s+(\w+)\s*\(', source)
+        if not package or classes != [path.stem] or len(methods) != len(re.findall(r'@Test\b', source)):
+            raise ValueError(f'Unsupported test declarations: {path}')
+        expected.extend(f'{package.group(1)}.{path.stem}#{method}' for method in methods)
+    if not expected or len(set(expected)) != len(expected):
+        raise ValueError('Full test inventory is empty or contains duplicate methods')
+    return expected
 
 
 def report_signatures(directory):
@@ -55,7 +81,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('suite', choices=('critical', 'full'), nargs='?', default='critical')
     args = parser.parse_args()
-    expected = [PREFIX + test for test in CRITICAL]
+    try:
+        expected = full_inventory() if args.suite == 'full' else [PREFIX + test for test in CRITICAL]
+    except ValueError as error:
+        print(f'Android CI inventory failed: {error}', file=sys.stderr)
+        return 1
     command = [str(ROOT / 'scripts/emulator-test.sh')]
     if args.suite == 'critical':
         command.append('-Pandroid.testInstrumentationRunnerArguments.annotation=' + PREFIX + 'CriticalCi')
@@ -70,7 +100,7 @@ def main():
     except (ValueError, ET.ParseError) as error:
         print(f'Android CI evidence failed: {error}', file=sys.stderr)
         return 1
-    print(f'Android {args.suite} suite: {count} tests passed; all {len(expected)} critical tests executed.')
+    print(f'Android {args.suite} suite: {count} tests passed; all {len(expected)} expected tests executed.')
     return 0
 
 

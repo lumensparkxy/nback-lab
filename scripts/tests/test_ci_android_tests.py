@@ -3,6 +3,8 @@ from pathlib import Path
 import importlib.util
 import tempfile
 import re
+import io
+from contextlib import redirect_stderr
 from unittest.mock import patch
 import unittest
 
@@ -67,3 +69,34 @@ class CriticalSuiteTest(unittest.TestCase):
                     '-Pandroid.testInstrumentationRunnerArguments.annotation=com.maswadkar.nback.CriticalCi'
                 ] if mode == 'critical' else [])
                 reports.assert_not_called()
+
+    def test_full_mode_rejects_fresh_critical_only_report(self):
+        body = ''.join(f'<testcase classname="{ci.PREFIX}{selector.split("#")[0]}" name="{selector.split("#")[1]}"/>'
+                       for selector in ci.CRITICAL)
+        path = self.report(body)
+        with patch.object(ci.sys, 'argv', ['ci_android_tests.py', 'full']), \
+             patch.object(ci.subprocess, 'run') as run, \
+             patch.object(ci, 'report_signatures', side_effect=[{}, {path: (1, 1)}]), \
+             redirect_stderr(io.StringIO()) as errors:
+            run.return_value.returncode = 0
+            self.assertEqual(ci.main(), 1)
+            self.assertIn('Missing executed tests', errors.getvalue())
+
+    def test_full_mode_accepts_every_discovered_test(self):
+        expected = ci.full_inventory()
+        self.assertTrue(set(ci.PREFIX + s for s in ci.CRITICAL) < set(expected))
+        path = self.report(''.join(f'<testcase classname="{s.split("#")[0]}" name="{s.split("#")[1]}"/>' for s in expected))
+        with patch.object(ci.sys, 'argv', ['ci_android_tests.py', 'full']), \
+             patch.object(ci.subprocess, 'run') as run, \
+             patch.object(ci, 'report_signatures', side_effect=[{}, {path: (1, 1)}]):
+            run.return_value.returncode = 0
+            self.assertEqual(ci.main(), 0)
+
+    def test_full_inventory_rejects_unsupported_annotations(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / 'app/src/androidTest/java/example/ExampleTest.kt'
+            source.parent.mkdir(parents=True)
+            source.write_text('package example\nclass ExampleTest { @Test(timeout=50) fun timed() {} }')
+            with patch.object(ci, 'ROOT', root), self.assertRaises(ValueError):
+                ci.full_inventory()

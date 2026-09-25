@@ -64,7 +64,10 @@ import com.maswadkar.nback.engine.SessionState
 internal fun NBackApp(session: SessionViewModel) {
     val state = session.state
     val activity = LocalActivity.current as? MainActivity
-    SideEffect { activity?.keepScreenAwake(state.screen == SessionScreen.PLAYING) }
+    val privacyRevision = activity?.adsRuntime?.revision
+    SideEffect {
+        privacyRevision?.let { activity.adSurface.service() }
+        activity?.keepScreenAwake(state.screen == SessionScreen.PLAYING) }
     DisposableEffect(activity) { onDispose { activity?.keepScreenAwake(false) } }
     NBackTheme {
         val time = historyTime(session.formatRevision)
@@ -72,7 +75,8 @@ internal fun NBackApp(session: SessionViewModel) {
         else SessionContent(state, session::start, { session.match() }, session::home, session.settings,
             session::selectLevel, session::practice, session::nextExample, session::retrySave,
             session.history.state, session.resultId, time, session::openHistory,
-            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match, session.homeUi, session::selectInterval)
+            { session.history.retry(session.resultId) }, { session.history.retry() }, session::toggleType, session::match, session.homeUi, session::selectInterval,
+            onLength = session::selectLength, onResultsHome = { if (activity != null) activity.resultsHome() else session.home() })
     }
 }
 
@@ -85,6 +89,7 @@ internal fun SessionContent(
     onHistory: () -> Unit = {}, onRetryResult: () -> Unit = {}, onRetryAll: () -> Unit = {},
     onToggleType: (StimulusType) -> Unit = {}, onTypeMatch: (StimulusType) -> Unit = { onMatch() },
     homeUi: HomeUiState = remember { HomeUiState() }, onInterval: (Int) -> Unit = {},
+    onResultsHome: () -> Unit = onHome, onLength: (Int) -> Unit = {},
 ) {
     Scaffold(containerColor = Paper) { insets ->
         BoxWithConstraints(Modifier.fillMaxSize().padding(insets)) {
@@ -93,10 +98,10 @@ internal fun SessionContent(
             } else 24.dp
             Box(Modifier.fillMaxSize().padding(horizontal = sidePadding, vertical = 16.dp)) {
                 when (state.screen) {
-                    SessionScreen.HOME -> GuidedHome(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType, homeUi, onInterval)
+                    SessionScreen.HOME -> GuidedHome(settings, onSelect, onStart, onPractice, onRetry, history, onHistory, onRetryAll, onToggleType, homeUi, onInterval, onLength)
                     SessionScreen.PLAYING -> Playing(state, onTypeMatch, onHome)
                     SessionScreen.INTERRUPTED -> Interrupted(state, onStart, onHome)
-                    SessionScreen.RESULTS -> Results(state, onStart, onHome, history, resultId, time, onHistory, onRetryResult)
+                    SessionScreen.RESULTS -> Results(state, onStart, onResultsHome, history, resultId, time, onHistory, onRetryResult)
                     SessionScreen.PRACTICE_FEEDBACK, SessionScreen.PRACTICE_COMPLETE -> key(state.feedback?.token) { PracticeExplanation(state, onNext, onPractice, onStart, onHome) }
                 }
             }
@@ -144,7 +149,7 @@ private fun Playing(state: SessionState, onMatch: (StimulusType) -> Unit, onHome
 @Composable
 private fun Progress(state: SessionState, compact: Boolean = false) {
     Text(if (compact) stringResource(R.string.level_option, state.config.level) else modeTitle(state.config.modeMask, state.config.level, state.config.practice), color = Muted, style = MaterialTheme.typography.labelLarge)
-    Text(stringResource(if (state.isWarmUp) R.string.warmup_progress else if (state.config.practice) R.string.practice_progress else R.string.scored_progress, state.progress, state.config.level),
+    Text(stringResource(if (state.isWarmUp) R.string.warmup_progress else if (state.config.practice) R.string.practice_progress else R.string.scored_progress, state.progress, if (state.isWarmUp) state.config.level else state.config.scoredTrials),
         style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.testTag("progress"))
 }
 
@@ -211,12 +216,12 @@ private fun Results(state: SessionState, onStart: () -> Unit, onHome: () -> Unit
     val entry = history.entries[resultId]
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(stringResource(R.string.session_complete), color = Muted, style = MaterialTheme.typography.labelLarge)
-        PageTitle(stringResource(R.string.results))
+        PageTitle(stringResource(R.string.session_result))
         entry?.let { SaveNotice(it.status, history.clearing, onRetry) }
-        MultiResultSummary(state.results, state.config.level, entry?.record?.completedAt, time, state.config.intervalSeconds)
+        MultiResultSummary(state.results, state.config.level, entry?.record?.completedAt, time, state.config.intervalSeconds, state.config.sessionLength)
         ActionButton(stringResource(R.string.play_again), onStart, tag = "play_again")
         AccuracyChart(state.config, state.outcomes)
-        QuietButton(stringResource(R.string.history), onHistory, tag = "history")
+        QuietButton(stringResource(R.string.results_hub), onHistory, tag = "history")
         HomeButton(onHome)
     }
 }

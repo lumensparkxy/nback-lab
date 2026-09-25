@@ -44,6 +44,10 @@ jobs:
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - name: Verify harness, tests, lint and APKs
         run: ./scripts/verify.sh
+      - name: Build optimized release artifacts and inspect privacy configuration
+        run: |
+          ./scripts/release-check.sh
+          ./scripts/ads-privacy-check.sh
       - name: Prove failed assertions fail the build
         run: ./scripts/test-failure-gate.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -58,6 +62,9 @@ jobs:
             app/build/outputs/apk/debug/*.apk
             artifacts/failure-probe.log
             artifacts/expected-failure.xml
+            artifacts/android-audit/
+            app/build/outputs/mapping/release/
+            app/build/outputs/bundle/release/
 
   android-ui:
     name: android-ui

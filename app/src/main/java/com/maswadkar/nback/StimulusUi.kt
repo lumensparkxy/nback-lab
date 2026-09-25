@@ -70,20 +70,6 @@ internal object StimulusColours {
     if (mask and StimulusType.COLOUR.bit != 0) Text(stringResource(R.string.colour_palette))
 }
 
-@Composable internal fun SessionExample(mask: Int, n: Int) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (i in 0..n) {
-            val example = if (i == n) 0 else i
-            Column(Modifier.weight(1f)) {
-                StimulusView(activeTypes(mask).associateWith { if (it == StimulusType.POSITION) example * 4 else example },
-                    mask, Modifier.fillMaxWidth().height(56.dp), "example_$i")
-                Text(if (i == n) "A" else ('A' + i).toString(), Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelSmall)
-            }
-        }
-    }
-    Text(stringResource(R.string.example_types, ((0 until n).map { ('A' + it).toString() } + "A").joinToString(" → ")), style = MaterialTheme.typography.bodySmall, color = Muted)
-}
-
 /** No changing stimulus semantics: the visual values are never automatically announced. */
 @Composable internal fun StimulusView(values: Map<StimulusType, Int>, mask: Int, modifier: Modifier = Modifier, tag: String = "grid") {
     val spatial = mask and 1 != 0

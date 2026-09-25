@@ -1,17 +1,20 @@
 # nback-lab
 
-An offline visual n-back Android app, developed through a portable, evidence-based
+An offline-capable visual n-back Android app, developed through a portable, evidence-based
 agent coding harness. **Current implementation: selectable Position, Colour and
 Number in all seven combinations, at 1-, 2- or 3-back, with guided practice and
 local history.** Choose the types to remember and respond independently for each.
 Colours have no name cue on the tile; an active Number appears inside it.
 
-Your difficulty, selected types and 1–30 second turn interval are remembered locally.
+Dedicated Settings remembers your difficulty, selected types, 1–30 second turn
+interval and 10/20/30/50 scored turns (default 20). Home summarizes the next run;
+How to Play provides contextual instructions and optional guided practice.
 Stimuli remain visible for 1 second at intervals 1–7, 2 seconds at 8–15 and
 3 seconds at 16–30. New completed sessions include a per-type running-accuracy
 chart and accessible turn-by-turn data. Older history retains its original summary. Completed normal
-sessions are saved on-device with per-type results. History filters by exact mode
-and difficulty and offers a confirmed clear across all modes and levels. Existing
+sessions are saved on-device with per-type results. Results includes Sessions and Progress. Sessions filters by exact mode, difficulty,
+pace and length; Progress compares all saved runs with the same configuration.
+A confirmed history clear covers every configuration. Existing
 Position-only history is preserved. Practice and unfinished sessions are not saved.
 
 ## Start here
@@ -21,6 +24,7 @@ Position-only history is preserved. Practice and unfinished sessions are not sav
 - [Architecture decisions](docs/decisions/README.md)
 - [Development workflow](docs/development.md) and [agent roles](docs/agents.md)
 - [Toolchain and setup](docs/toolchain.md)
+- [Release, code-hygiene and ads/privacy workflows](docs/android-readiness.md)
 - [GitHub activation and issue drafts](docs/github-setup.md)
 - [Bootstrap validation record](docs/validation/bootstrap.md)
 
@@ -34,7 +38,7 @@ Install the prerequisites in [toolchain setup](docs/toolchain.md), then:
 ./scripts/test-failure-gate.sh
 ```
 
-Routine CI runs 20 critical Android tests; the complete suite is available manually
+Routine CI runs 26 critical Android tests; the complete suite is available manually
 and required before releases. See [CI coverage](docs/development.md#ci-coverage-and-speed).
 
 Start an Android emulator from Android Studio's Device Manager. Select its serial

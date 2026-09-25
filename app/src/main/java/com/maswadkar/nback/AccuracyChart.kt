@@ -26,7 +26,7 @@ import com.maswadkar.nback.engine.*
 import kotlin.math.roundToInt
 
 internal fun elapsedLabel(millis: Long): String = "${millis / 60000}:${(millis / 1000 % 60).toString().padStart(2, '0')}" + if (millis % 1000 == 0L) "" else ".${millis % 1000 / 100}"
-private val chartColours = mapOf(StimulusType.POSITION to Color(0xFF1857A4), StimulusType.COLOUR to Color(0xFF8039A2), StimulusType.NUMBER to Color(0xFF16745E))
+internal val chartColours = mapOf(StimulusType.POSITION to Color(0xFF1857A4), StimulusType.COLOUR to Color(0xFF8039A2), StimulusType.NUMBER to Color(0xFF16745E))
 
 @Composable internal fun AccuracyChart(config: SessionConfig, outcomes: Map<StimulusType, List<Outcome>>) {
     if (outcomes.isEmpty()) {
@@ -104,7 +104,7 @@ private val chartColours = mapOf(StimulusType.POSITION to Color(0xFF1857A4), Sti
         val tableState = stringResource(if (table) R.string.expanded else R.string.collapsed)
         TextButton(onClick = { table = !table }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("timeline_table")
             .semantics { stateDescription = tableState }) { Text(stringResource(R.string.chart_table)) }
-        if (table) for (index in 0 until 20) {
+        if (table) for (index in 0 until config.scoredTrials) {
             Column(Modifier.fillMaxWidth().testTag("timeline_turn_${index + 1}").semantics(mergeDescendants = true) {}) {
                 Text(stringResource(R.string.chart_row, index + 1, elapsedLabel(points.values.first()[index].elapsedMillis)), fontWeight = FontWeight.SemiBold)
                 for (type in config.types) Text("${labels.getValue(type)}: ${points.getValue(type)[index].percentage.roundToInt()}%")

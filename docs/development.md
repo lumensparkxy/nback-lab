@@ -116,14 +116,15 @@ skills may implement it; a fresh clone must be sufficient to discover the rules.
 ## CI coverage and speed
 
 Pull requests and pushes to `main` run all harness/JVM tests, lint, debug builds,
-the failure-gate probe, and a 20-test critical Android selection. The required
+the failure-gate probe, and a 26-test critical Android selection. The required
 `gate` still requires both `quality` and `android-ui` to succeed. Selection lives
 in `scripts/ci_android_tests.py`, paired with `@CriticalCi` annotations; CI verifies every selected test actually passed
 using fresh JUnit reports, so an empty or partial run cannot produce a green gate.
 
 The selection protects launch/warm-up, a real timed session and results,
 independent responses, practice, rotation/interruption, preferences, completed
-session persistence, clear ordering, database corruption and both history migrations.
+session persistence, clear ordering, database corruption, all three history migrations,
+consent/request gating, deferred privacy forms, variable session length and unchanged-history refresh.
 All engine tests remain because they cheaply cover scoring/timing across levels
 and all seven modes. The remaining Android tests stay in the repository; broader
 layout/accessibility combinations, repeated timed sessions and additional error

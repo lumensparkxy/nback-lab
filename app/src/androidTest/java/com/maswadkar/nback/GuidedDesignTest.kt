@@ -74,25 +74,29 @@ class GuidedDesignTest {
         assertEquals("Start bottom is not clipped", position.y + start.size.height, visible.bottom, 1f)
         capture("home-reference")
         compose.onNodeWithTag("help").performScrollTo().performClick()
-        compose.onNodeWithTag("help").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
+        compose.onNodeWithTag("help_screen").assertIsDisplayed()
         compose.onNodeWithText("If several types match", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Colours:", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("This task requires", substring = true).performScrollTo().assertIsDisplayed()
         assertEquals(7, settings.value.modeMask); assertEquals(SessionScreen.HOME, game.state.screen)
-        compose.onNodeWithTag("help").performScrollTo().performClick()
+        compose.onNodeWithTag("help_back").performScrollTo().performClick()
         compose.onNodeWithText("Colours:", substring = true).assertDoesNotExist()
     }
     @Test fun allSelectionsAndLevelsHaveAccurateExamplesAndGuardLastType() {
         show()
         for (mask in 1..7) for (level in 1..3) {
             compose.runOnIdle { settings.value = settings.value.copy(modeMask = mask, level = level) }
+            compose.onNodeWithTag("settings").performScrollTo().performClick()
             for (type in StimulusType.entries) {
                 compose.onNodeWithTag("type_${type.bit}").assert(if (mask and type.bit != 0) isToggleable().and(isOn()) else isToggleable().and(isOff()))
                 if (mask == type.bit) compose.onNodeWithTag("type_${type.bit}").assertIsNotEnabled()
             }
             compose.onNodeWithTag("level_$level").assertIsSelected()
-            compose.onAllNodes(hasTestTag("example_$level")).assertCountEquals(1)
-            compose.onNodeWithTag("example_${level + 1}").assertDoesNotExist()
+            compose.onNodeWithTag("settings_back").performScrollTo().performClick()
+            compose.onNodeWithTag("help").performScrollTo().performClick()
+            compose.onNodeWithTag("help_example_$level").performScrollTo().assertExists()
+            compose.onNodeWithTag("help_example_${level + 1}").assertDoesNotExist()
+            compose.onNodeWithTag("help_back").performScrollTo().performClick()
             compose.onNodeWithTag("start").performScrollTo().assertIsEnabled()
         }
     }
@@ -119,12 +123,21 @@ class GuidedDesignTest {
                 compose.activityRule.scenario.onActivity { it.setContent { Fixture() } }
                 for (font in listOf(1f, 2f)) {
                     compose.runOnIdle { width.value = w; height.value = h; scale.value = font }
+                    compose.onNodeWithTag("settings").performScrollTo().performClick()
+                    compose.onNodeWithTag("length_50").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+                    capture("settings-${w}x$h-font-$font")
                     for (type in StimulusType.entries) compose.onNodeWithTag("type_${type.bit}").performScrollTo()
                         .assertIsDisplayed().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
                     compose.onNodeWithTag("level_3").performScrollTo().performClick().assertIsSelected()
+                    compose.onNodeWithTag("settings_back").performScrollTo().performClick()
                     compose.onNodeWithTag("start").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
                     compose.onNodeWithTag("practice").performScrollTo().assertIsDisplayed()
                     capture("home-${w}x$h-font-$font")
+                    compose.onNodeWithTag("help").performScrollTo().performClick()
+                    compose.onNodeWithTag("help_example_3").performScrollTo().assertIsDisplayed()
+                    capture("help-${w}x$h-font-$font")
+                    compose.onNodeWithTag("help_practice").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+                    compose.onNodeWithTag("help_back").performScrollTo().performClick()
                 }
             }
         } finally {

@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.maswadkar.nback.engine.storageCode
+import com.maswadkar.nback.engine.SessionRules
 import com.maswadkar.nback.engine.StimulusType
 import com.maswadkar.nback.engine.SessionResult
 import com.maswadkar.nback.engine.MonotonicClock
@@ -26,9 +27,10 @@ import java.util.UUID
 class SessionViewModel(
     private val preferences: LevelSettings,
     val history: HistoryCoordinator,
-    private val game: VisualSession = VisualSession.withTypes(MonotonicClock { SystemClock.elapsedRealtime() }) { type, n -> generateSequence(Random.Default, n, type.cardinality) },
+    private val game: VisualSession = VisualSession.withConfig(MonotonicClock { SystemClock.elapsedRealtime() }) { type, config -> generateSequence(Random.Default, config.level, type.cardinality, config.sessionLength) },
     private val wallClock: () -> Long = System::currentTimeMillis,
     private val newId: () -> String = { UUID.randomUUID().toString() },
+    private val completedNormal: (String) -> Unit = {},
 ) : ViewModel() {
     internal val homeUi = HomeUiState()
     var state by mutableStateOf(game.state)
@@ -41,12 +43,13 @@ class SessionViewModel(
         private set
     var resultId by mutableStateOf<String?>(null)
         private set
+    private var selectedProgressGroup: ComparisonGroup? = null
     private var runId: String? = null
-    val handlesBack: Boolean get() = historyNavigation.open || state.screen != SessionScreen.HOME
+    val handlesBack: Boolean get() = historyNavigation.open || homeUi.destination != HomeDestination.HOME || state.screen != SessionScreen.HOME
     private val handler = Handler(Looper.getMainLooper())
     private var resumed = false
     private val tick = Runnable { refresh() }
-    private data class Save(val version: Long, val level: Int, val modeMask: Int, val intervalSeconds: Int)
+    private data class Save(val version: Long, val level: Int, val modeMask: Int, val intervalSeconds: Int, val sessionLength: Int)
     private val saves = Channel<Save>(Channel.UNLIMITED)
     private var version = 0L
 
@@ -54,7 +57,7 @@ class SessionViewModel(
         viewModelScope.launch {
             for (save in saves) {
                 try {
-                    preferences.save(save.level, save.modeMask, save.intervalSeconds)
+                    preferences.save(save.level, save.modeMask, save.intervalSeconds, save.sessionLength)
                     if (save.version == version) settings = settings.copy(saving = false)
                 } catch (e: IOException) {
                     if (save.version == version) settings = settings.copy(saving = false, notice = SettingsNotice.SAVE_FAILED)
@@ -70,10 +73,15 @@ class SessionViewModel(
                 val resetTypes = loaded.typesReset || !validTypes
                 val validInterval = loaded.intervalSeconds in 1..30
                 val resetInterval = loaded.intervalReset || !validInterval
+                val validLength = loaded.sessionLength in SessionRules.LENGTHS
+                val resetLength = loaded.lengthReset || !validLength
                 settings = SettingsState(level = if (valid) loaded.level else 2, loading = false,
                     modeMask = if (validTypes) loaded.modeMask else 1,
                     intervalSeconds = if (validInterval) loaded.intervalSeconds else 3,
+                    sessionLength = if (validLength) loaded.sessionLength else 20,
                     notice = when {
+                        resetLength && (resetLevel || resetTypes || resetInterval) -> SettingsNotice.SETTINGS_RESET
+                        resetLength -> SettingsNotice.LENGTH_RESET
                         resetInterval && (resetLevel || resetTypes) -> SettingsNotice.SETTINGS_RESET
                         resetInterval -> SettingsNotice.INTERVAL_RESET
                         resetLevel && resetTypes -> SettingsNotice.BOTH_RESET
@@ -81,7 +89,7 @@ class SessionViewModel(
                         resetTypes -> SettingsNotice.TYPES_RESET
                         else -> null
                     })
-                if (resetLevel || resetTypes || resetInterval) queueSave()
+                if (resetLevel || resetTypes || resetInterval || resetLength) queueSave()
             } catch (e: IOException) {
                 settings = SettingsState(loading = false, notice = SettingsNotice.LOAD_FAILED)
             }
@@ -107,9 +115,21 @@ class SessionViewModel(
         settings = settings.copy(intervalSeconds = seconds, notice = null)
         queueSave()
     }
+    fun selectLength(length: Int) {
+        require(length in SessionRules.LENGTHS)
+        if (settings.loading || state.screen != SessionScreen.HOME || historyNavigation.open) return
+        settings = settings.copy(sessionLength = length, notice = null)
+        queueSave()
+    }
+    fun openSettings() {
+        if (state.screen == SessionScreen.HOME && !historyNavigation.open) homeUi.destination = HomeDestination.SETTINGS
+    }
+    fun openHelp() {
+        if (state.screen == SessionScreen.HOME && !historyNavigation.open) homeUi.destination = HomeDestination.HELP
+    }
     private fun queueSave() {
         settings = settings.copy(saving = true)
-        check(saves.trySend(Save(++version, settings.level, settings.modeMask, settings.intervalSeconds)).isSuccess)
+        check(saves.trySend(Save(++version, settings.level, settings.modeMask, settings.intervalSeconds, settings.sessionLength)).isSuccess)
     }
     fun retrySave() {
         if (!settings.loading && state.screen == SessionScreen.HOME && !historyNavigation.open) {
@@ -125,7 +145,9 @@ class SessionViewModel(
         val level = if (state.screen == SessionScreen.HOME) settings.level else state.config.level
         val practice = state.screen == SessionScreen.INTERRUPTED && state.config.practice
         game.start(level, practice, if (state.screen == SessionScreen.HOME) settings.modeMask else state.config.modeMask,
-            if (state.screen == SessionScreen.HOME) settings.intervalSeconds else state.config.intervalSeconds)
+            if (state.screen == SessionScreen.HOME) settings.intervalSeconds else state.config.intervalSeconds,
+            sessionLength = if (state.screen == SessionScreen.HOME) settings.sessionLength else state.config.sessionLength)
+        homeUi.destination = HomeDestination.HOME
         runId = if (practice) null else newId()
         resultId = null
         refresh()
@@ -135,7 +157,9 @@ class SessionViewModel(
         captureCompletion()
         game.start(if (state.screen == SessionScreen.HOME) settings.level else state.config.level, practice = true,
             modeMask = if (state.screen == SessionScreen.HOME) settings.modeMask else state.config.modeMask,
-            intervalSeconds = if (state.screen == SessionScreen.HOME) settings.intervalSeconds else state.config.intervalSeconds)
+            intervalSeconds = if (state.screen == SessionScreen.HOME) settings.intervalSeconds else state.config.intervalSeconds,
+            sessionLength = if (state.screen == SessionScreen.HOME) settings.sessionLength else state.config.sessionLength)
+        homeUi.destination = HomeDestination.HOME
         runId = null; resultId = null
         refresh()
     }
@@ -147,6 +171,7 @@ class SessionViewModel(
             historyNavigation.confirmClear -> cancelClear()
             historyNavigation.detailId != null -> historyNavigation = historyNavigation.copy(detailId = null)
             historyNavigation.open -> historyNavigation = HistoryNavigation()
+            homeUi.destination != HomeDestination.HOME -> { homeUi.destination = HomeDestination.HOME }
             state.isActive -> { game.interrupt(); refresh() }
             else -> home()
         }
@@ -154,6 +179,7 @@ class SessionViewModel(
     fun home() {
         game.advance(); captureCompletion()
         game.home(); runId = null; resultId = null
+        homeUi.destination = HomeDestination.HOME
         historyNavigation = HistoryNavigation(); refresh()
     }
     fun refresh() {
@@ -171,7 +197,7 @@ class SessionViewModel(
         val number = current.results[StimulusType.NUMBER] ?: SessionResult()
         val record = HistoryRecord(id, wallClock(), current.config.level, hits = result.hits,
             misses = result.misses, falseAlarms = result.falseAlarms, correctRejections = result.correctRejections,
-            rulesVersion = 3, modeMask = current.config.modeMask,
+            rulesVersion = 4, sessionLength = current.config.sessionLength, modeMask = current.config.modeMask,
             colourHits = colour.hits, colourMisses = colour.misses, colourFalseAlarms = colour.falseAlarms, colourCorrectRejections = colour.correctRejections,
             numberHits = number.hits, numberMisses = number.misses, numberFalseAlarms = number.falseAlarms, numberCorrectRejections = number.correctRejections,
             intervalSeconds = current.config.intervalSeconds,
@@ -180,10 +206,11 @@ class SessionViewModel(
             numberOutcomes = current.outcomes[StimulusType.NUMBER]?.joinToString("") { it.storageCode().toString() } ?: "")
         history.capture(record)
         resultId = id
+        completedNormal(id)
     }
     fun openHistory() {
         if (state.screen !in listOf(SessionScreen.HOME, SessionScreen.RESULTS) || historyNavigation.open) return
-        historyNavigation = HistoryNavigation(open = true); history.reload()
+        historyNavigation = HistoryNavigation(open = true, group = selectedProgressGroup); history.reload()
     }
     fun filterHistory(level: Int) {
         require(level in 0..3)
@@ -192,6 +219,27 @@ class SessionViewModel(
     fun filterHistoryMode(modeMask: Int) {
         require(modeMask in 0..7)
         historyNavigation = historyNavigation.copy(modeFilter = modeMask, scrollIndex = 0, scrollOffset = 0)
+    }
+    fun filterHistoryPace(pace: Int) {
+        require(pace in 0..30)
+        historyNavigation = historyNavigation.copy(paceFilter = pace, scrollIndex = 0, scrollOffset = 0)
+    }
+    fun filterHistoryLength(length: Int) {
+        require(length == 0 || length in SessionRules.LENGTHS)
+        historyNavigation = historyNavigation.copy(lengthFilter = length, scrollIndex = 0, scrollOffset = 0)
+    }
+    fun showProgress(progress: Boolean) {
+        val selected = historyNavigation.group ?: history.state.records.firstOrNull()?.comparisonGroup()
+        selectedProgressGroup = selected
+        historyNavigation = historyNavigation.copy(progress = progress, group = selected)
+    }
+    fun toggleProgressTable() { historyNavigation = historyNavigation.copy(progressTable = !historyNavigation.progressTable) }
+    fun selectGroup(group: ComparisonGroup) {
+        selectedProgressGroup = group
+        historyNavigation = historyNavigation.copy(group = group, progressIndex = 0, progressOffset = 0)
+    }
+    fun rememberProgressScroll(index: Int, offset: Int) {
+        historyNavigation = historyNavigation.copy(progressIndex = index, progressOffset = offset)
     }
     fun rememberHistoryScroll(index: Int, offset: Int) {
         historyNavigation = historyNavigation.copy(scrollIndex = index, scrollOffset = offset)
@@ -211,5 +259,8 @@ class SessionViewModel(
 /** Retained by ViewModel, deliberately absent from saved-instance-state/process restoration. */
 data class HistoryNavigation(
     val open: Boolean = false, val detailId: String? = null, val filter: Int = 0,
+    val progress: Boolean = false, val progressTable: Boolean = false, val group: ComparisonGroup? = null,
+    val progressIndex: Int = 0, val progressOffset: Int = 0,
+    val paceFilter: Int = 0, val lengthFilter: Int = 0,
     val modeFilter: Int = 0, val scrollIndex: Int = 0, val scrollOffset: Int = 0, val confirmClear: Boolean = false,
 )

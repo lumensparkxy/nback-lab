@@ -1,15 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <string name="app_name">N-back</string>
-  <string name="welcome_title">Set up your next round</string>
-  <plurals name="session_details">
-    <item quantity="one">%1$d warm-up turn · 20 scored turns · %2$d seconds</item>
-    <item quantity="other">%1$d warm-up turns · 20 scored turns · %2$d seconds</item>
-  </plurals>
   <string name="visual_requirement">This task requires seeing the selected positions, colours or numbers. A nonvisual mode is not available.</string>
   <string name="start">Start session</string>
   <string name="warmup_progress">Warm-up %1$d/%2$d</string>
-  <string name="scored_progress">Turn %1$d/20</string>
+  <string name="scored_progress">Turn %1$d/%2$d</string>
   <string name="visual_grid">Visual position grid</string>
   <string name="interrupted">Session interrupted</string>
   <string name="interrupted_detail">This session ended before it was complete. Restart when you are ready; no partial score was saved.</string>
@@ -18,7 +13,7 @@
   <string name="session_complete">SESSION COMPLETE</string>
   <string name="results">Your results</string>
   <string name="accuracy">%1$d%% accuracy</string>
-  <string name="correct">Correct: %1$d/20</string>
+  <string name="correct">Correct: %1$d/%2$d</string>
   <string name="misses">Misses</string>
   <string name="correct_rejections">Correct rejections</string>
   <string name="outcome_count">%1$s: %2$d</string>
@@ -46,7 +41,6 @@
   <string name="you_waited">You waited.</string>
   <string name="practice_again">Practice again</string>
   <string name="next_example">Next example</string>
-    <string name="history">History</string>
     <string name="history_comparison">Review sessions with the same types and difficulty; different modes and levels are not directly comparable.</string>
     <string name="history_filters">Filter by difficulty</string>
     <string name="all_levels">All</string>
@@ -65,15 +59,15 @@
     <string name="history_retry_saving">Retry saving</string>
     <string name="clear_history">Clear history</string>
     <string name="clear_title">Clear all history?</string>
-    <string name="clear_body">Delete all saved sessions and discard unsaved results for every mode and difficulty? This cannot be undone. Your session settings will stay the same.</string>
+    <string name="clear_body">Delete all saved sessions and discard unsaved results for every mode, difficulty, pace and length? This cannot be undone. Your session settings will stay the same.</string>
     <string name="clear_confirm">Clear all history</string>
     <string name="cancel">Cancel</string>
     <string name="history_clearing">Clearing history…</string>
     <string name="history_clear_failed">Couldn’t clear history</string>
     <string name="back">Back</string>
     <string name="results_baseline" formatted="false">Accuracy includes correctly waiting on non-matches. Not tapping at all gives 70% accuracy, so check hits and misses too.</string>
-    <string name="hits_denominator">Hits: %1$d of 6</string>
-    <string name="false_alarms_denominator">False alarms: %1$d of 14</string>
+    <string name="hits_denominator">Hits: %1$d of %2$d</string>
+    <string name="false_alarms_denominator">False alarms: %1$d of %2$d</string>
     <string name="type_position">Position</string>
     <string name="type_colour">Colour</string>
     <string name="type_number">Number</string>
@@ -96,7 +90,6 @@
     <string name="position_rule">Position: remember the cell in the grid.</string>
     <string name="colour_rule">Colour: remember the tile colour.</string>
     <string name="number_rule">Number: remember the digit 1–9, independently of its position.</string>
-    <string name="example_types">Example: %1$s. On the final turn each selected type matches; tap each of its match buttons.</string>
     <string name="mode_filters">Filter by exact mode</string>
     <string name="empty_mode">No saved sessions for these filters yet</string>
     <string name="type_accuracy">%1$s: %2$d%% accuracy</string>
@@ -116,14 +109,12 @@
     <string name="match_action">match</string>
     <string name="colour_palette">Colours: red, blue, green, yellow, purple and orange. Identify the colour itself; its name is not shown on the tile.</string>
     <string name="skip_short">Skip</string>
-    <string name="setup_subtitle">Choose what to remember and how far back.</string>
     <string name="how_far">Choose how far back</string>
     <string name="how_far_detail">Compare with this many turns earlier.</string>
     <string name="card_position">Same place</string>
     <string name="card_colour">Same colour</string>
     <string name="card_number">Same digit</string>
     <plurals name="look_back"><item quantity="one">Look %1$d turn back</item><item quantity="other">Look %1$d turns back</item></plurals>
-    <plurals name="session_brief"><item quantity="one">%1$d warm-up · 20 scored turns · %2$d seconds</item><item quantity="other">%1$d warm-up · 20 scored turns · %2$d seconds</item></plurals>
     <string name="visual_brief">Visible for %1$d s · Respond until the next turn</string>
     <string name="practice_invitation">New to n-back? Try guided practice</string>
     <string name="how_to_play">How to play</string>
@@ -135,7 +126,7 @@
     <string name="timing_detail">Each turn lasts %1$s; the tile is visible for %2$s. At 1 second there is no blank gap, so identical turns may look continuous.</string>
     <string name="interval_reset">Invalid saved interval reset to 3 seconds.</string>
     <string name="settings_any_reset">Invalid saved settings were restored to their defaults. Valid settings were kept.</string>
-    <string name="chart_title">Accuracy over time</string>
+    <string name="chart_title">Accuracy during this session</string>
     <string name="chart_unavailable">Timeline unavailable for this older session.</string>
     <string name="chart_caveat">Running accuracy includes correct waits. With no responses, final accuracy is 70%.</string>
     <string name="chart_table">Turn-by-turn data</string>
@@ -146,4 +137,62 @@
     <string name="decrease_interval">Decrease time per turn</string>
     <string name="increase_interval">Increase time per turn</string>
     <string name="interval_seconds_label">Time per turn in seconds</string>
+  <string name="privacy">Privacy</string>
+  <string name="privacy_options">Ad privacy options</string>
+  <string name="privacy_retry">Retry privacy check</string>
+  <string name="privacy_unavailable">The privacy check could not finish. Your exercises remain available.</string>
+  <string name="privacy_policy">Read full privacy policy</string>
+  <string name="privacy_close">Close</string>
+  <string name="privacy_notice">Your exercise settings and results stay on this device. No account is required. Clearing history removes saved results.
+
+When advertising is enabled, Google advertising services use the network and may process device information, IP address, app interactions and diagnostic information. We do not send your scores, exercise sequences or response timing for advertising.
+
+Ads use conservative age treatment and non-personalized requests for all users. We do not collect your age or date of birth. Ad privacy options appear below when Google makes them available. Exercises work without an internet connection or an available ad.</string>
+
+    <string name="settings">Settings</string>
+    <string name="home_title">Ready for a round?</string>
+    <string name="home_subtitle">Remember the pattern. Match each type independently.</string>
+    <string name="results_hub">Results</string>
+    <string name="session_result">Session result</string>
+    <string name="change_settings">Change settings</string>
+    <string name="next_session_settings">Changes apply to your next session and are remembered automatically.</string>
+    <string name="session_length">Session length</string>
+    <string name="length_explanation">Scored turns. Warm-up turns are additional.</string>
+    <string name="length_pace">Scored turns: %1$d · %2$d s per turn</string>
+    <plurals name="warmup_duration"><item quantity="one">%1$d warm-up turn · %2$s total (minutes:seconds)</item><item quantity="other">%1$d warm-up turns · %2$s total (minutes:seconds)</item></plurals>
+    <string name="length_reset">Session length was reset to 20 scored turns.</string>
+    <string name="visual_home_notice">A visual exercise with timed responses. Colour matching may be difficult with colour-vision differences. Read How to Play for details.</string>
+    <string name="turns_not_seconds">Count turns, not seconds. Every turn counts, whether you tap or wait.</string>
+    <string name="help_types">Position means the cell in the grid. Colour means the tile colour, with no word cue. Number means the digit 1–9, with no arithmetic. Only your selected types have response buttons.</string>
+    <string name="worked_example">A worked example</string>
+    <plurals name="example_reference"><item quantity="one">Reference: %1$d turn earlier</item><item quantity="other">Reference: %1$d turns earlier</item></plurals>
+    <string name="example_between">Intermediate turn %1$d</string>
+    <string name="example_match_type">%1$s matches. Tap its match button.</string>
+    <string name="example_wait_type">%1$s differs. Leave its match button unanswered.</string>
+    <string name="help_answer_title">How to answer</string>
+    <string name="help_answer">Tap every type that matches the reference turn, once before the current turn ends. Wait for types that differ. Multiple matches need separate taps; simultaneous fingers are not needed. Taps cannot be undone. Recorded confirms a tap, not whether it was correct.</string>
+    <string name="help_timing_title">Timing and warm-up</string>
+    <plurals name="help_warmup"><item quantity="one">Watch the first %1$d warm-up turn without responding.</item><item quantity="other">Watch the first %1$d warm-up turns without responding.</item></plurals>
+    <string name="help_timing">Scored turns: %1$d. Time per turn: %2$s. Visible: %3$s; blank: %4$s. You can respond throughout the turn. Leaving the app interrupts the run; unfinished sessions are not saved.</string>
+    <string name="help_results_title">Understanding results</string>
+    <string name="help_results">A hit is a correct match tap. A miss is a match you did not tap. A false alarm is a tap when the type differed. A correct rejection is correctly waiting when it differed.</string>
+    <string name="help_graphs">The session graph shows running accuracy as scored turns finish. Progress in Results shows final scores across saved sessions with the same types, difficulty, pace and length. Different configurations are not directly comparable.</string>
+    <string name="practice_length_note">Practice always has four evaluated examples, regardless of session length. Feedback waits for Next, so practice has no fixed duration. Practice is not saved.</string>
+    <string name="sessions_tab">Sessions</string>
+    <string name="progress_tab">Progress</string>
+    <string name="pace_filter">Time per turn</string>
+    <string name="length_filter">Scored turns</string>
+    <string name="no_filter_matches">No saved sessions match these filters.</string>
+    <string name="saved_count">Saved sessions: %1$d</string>
+    <string name="saved_count_note">Completed and saved sessions only. Practice, unfinished and unsaved results are excluded. Clearing history resets this count.</string>
+    <string name="comparison_group">Compare sessions with the same settings</string>
+    <string name="group_count">Sessions in this group: %1$d</string>
+    <string name="group_missing">This comparison group is no longer available. Choose another group.</string>
+    <string name="progress_empty">Play and save a session to see your progress here.</string>
+    <string name="progress_single">Play another session with these settings to compare results.</string>
+    <string name="progress_axis">Sessions, oldest to newest · Accuracy 0–100%</string>
+    <string name="progress_spacing">Spacing shows session order, not elapsed time. Device clock changes can affect ordering.</string>
+    <string name="progress_table">Session data</string>
+    <string name="progress_latest">Latest %1$s accuracy: %2$d%%</string>
+    <string name="progress_rates">%1$s: %2$d%% accuracy · Hits %3$d/%4$d (%5$d%%) · False alarms %6$d/%7$d (%8$d%%)</string>
 </resources>
