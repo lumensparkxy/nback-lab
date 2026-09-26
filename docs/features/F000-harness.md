@@ -33,8 +33,12 @@ selected emulator. Reports distinguish local checks, hosted CI and branch rules.
 | AC-07 | Main branch requires successful checks and owner-controlled merge | Inspect GitHub branch/ruleset settings after activation |
 | AC-08 | Initial work is represented by linked GitHub issues | Create issues from reviewed local drafts after remote activation |
 
-## Open questions
+## Bootstrap questions and later resolutions
 
-Publication license and an owned app identifier before distribution. The owner
-approved public `lumensparkxy/nback-lab`. Hosted gates cannot be marked complete
-from local evidence.
+Publication licensing and an owned app identifier were open during bootstrap.
+The original project is now [MIT licensed](../../LICENSE), with
+[separate third-party terms](../third-party-assets.md). The owner selected
+`com.maswadkar.nback` before distribution, recorded in
+[ADR-002](../decisions/ADR-002-android-foundation.md).
+The owner approved public `lumensparkxy/nback-lab`. Hosted gates cannot be marked
+complete from local evidence.
