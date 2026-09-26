@@ -7,6 +7,17 @@ Codex. No workflow signs, uploads, merges, publishes or deletes source implicitl
 
 ## Release readiness
 
+The [android-release-readiness skill](../.agents/skills/android-release-readiness/SKILL.md)
+supports three modes: check readiness, prepare publication, and publish and verify.
+Preparation includes release notes, listing text, screenshots/graphics, links and
+disclosures; it does not authorize submission or rollout. See the skill's
+[Play procedure](../.agents/skills/android-release-readiness/references/play-release.md),
+[publishing-material checklist](../.agents/skills/android-release-readiness/references/publishing-materials.md)
+and [release record](../.agents/skills/android-release-readiness/references/release-record.md).
+Existing explicit owner authorization is retained for its scope. Release evidence
+must include the complete Android suite described in
+[CI coverage](development.md#ci-coverage-and-speed), not only routine critical CI.
+
 Run `./scripts/release-check.sh`. It builds release lint, an optimized unsigned
 APK/AAB and a debug-signed optimized `releaseSmoke` APK with separate `.qa` identity
 and ads disabled. An additional optimized `adsSmoke` variant uses `.adsqa` and
@@ -15,8 +26,9 @@ an ads-disabled R8 build cannot prove the ad path survives optimization. Review 
 manifest. Install smoke only on an explicitly selected emulator; exercise Home,
 practice/results/history and upgrades before a release. Debug tests alone do not
 certify R8. Preserve mapping with the exact signed version. Increment versionCode
-for actual releases, choose signing/key custody with the owner, and validate the
-final signed AAB and Play internal-track result. No release key is configured here.
+for new binaries; retain it when promoting an existing verified Play artifact.
+Choose signing/key custody with the owner, and validate the final signed AAB and
+Play internal-track result. No release key is configured here.
 
 ## Code hygiene (report only)
 
