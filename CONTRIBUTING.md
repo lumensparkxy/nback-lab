@@ -1,5 +1,14 @@
 # Contributing
 
+The original project is [MIT licensed](LICENSE). Submit only contributions you
+have the right to share under that license, and preserve third-party attribution
+and licensing when including external material. See
+[third-party notices](docs/third-party-assets.md).
+
+For ideas or bugs, [open an issue](https://github.com/lumensparkxy/nback-lab/issues).
+Describe the expected behavior and a reproducible example. Discuss new product
+behavior before implementing it; a feature proposal is not yet an agreed spec.
+
 1. Read [the development workflow](docs/development.md) and [product scope](docs/product.md).
 2. Pick a ready GitHub issue with an agreed specification and resolved blockers,
    or a bounded maintenance PR under [the maintenance rules](docs/development.md#maintenance).

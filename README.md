@@ -1,5 +1,14 @@
 # nback-lab
 
+An open-source Android app and a reusable example of specification-driven agent
+development. Original project code, documentation, prompts and agent workflows
+are available under the [MIT license](LICENSE), with
+[third-party materials retaining their own terms](docs/third-party-assets.md).
+
+[Get N-Back: Visual Memory on Google Play](https://play.google.com/store/apps/details?id=com.maswadkar.nback)
+· [Build your own app with the prompt playbook](docs/guides/blank-slate-to-working-app-prompts.md)
+· [Documentation](docs/README.md)
+
 An offline-capable visual n-back Android app, developed through a portable, evidence-based
 agent coding harness. **Current implementation: selectable Position, Colour and
 Number in all seven combinations, at 1-, 2- or 3-back, with guided practice and
@@ -19,6 +28,7 @@ Position-only history is preserved. Practice and unfinished sessions are not sav
 
 ## Start here
 
+- [Blank slate → working app: copy-and-paste prompt playbook](docs/guides/blank-slate-to-working-app-prompts.md)
 - [Product and agreed scope](docs/product.md)
 - [Feature specifications](docs/features/README.md)
 - [Architecture decisions](docs/decisions/README.md)
@@ -27,6 +37,7 @@ Position-only history is preserved. Practice and unfinished sessions are not sav
 - [Release, code-hygiene and ads/privacy workflows](docs/android-readiness.md)
 - [GitHub activation and issue drafts](docs/github-setup.md)
 - [Bootstrap validation record](docs/validation/bootstrap.md)
+- [Contributing](CONTRIBUTING.md) and [license / third-party notices](docs/third-party-assets.md)
 
 ## Run the checks
 
@@ -59,6 +70,7 @@ macOS/Linux SDK locations or respect `JAVA_HOME` and `ANDROID_HOME`.
 | --- | --- |
 | `app/` | Android lifecycle, Compose UI, settings and session history adapters |
 | `engine/` | Pure Kotlin sequence generation, elapsed-time session state and scoring |
+| `docs/guides/` | Reusable prompt sequence for taking a new app from idea to delivery |
 | `docs/features/` | Canonical feature behavior and acceptance criteria |
 | `docs/decisions/` | Accepted and proposed architectural decisions |
 | `scripts/` | Portable local and CI commands |
@@ -71,5 +83,17 @@ commands. No external AI API key is needed by the app or build.
 
 The application ID and namespace are `com.maswadkar.nback`. This identity was
 selected before distribution; installations of the former `com.example.nback`
-development app remain separate, including their local data. No open-source
-license has been selected.
+development app remain separate, including their local data.
+
+## Reuse and licensing
+
+You can study, modify and redistribute the original project under the [MIT
+license](LICENSE), including for commercial use. Keep the copyright and license
+notice with copies or substantial portions. The license includes no warranty.
+Bundled third-party materials and downloaded dependencies retain their own licenses
+and terms; see [third-party notices](docs/third-party-assets.md).
+
+For a separately distributed fork, choose your own application ID, signing identity,
+store listing, privacy disclosures and any service accounts. Development builds use
+test advertising configuration; production services require your own setup and
+review. See [release readiness](docs/android-readiness.md) before distribution.

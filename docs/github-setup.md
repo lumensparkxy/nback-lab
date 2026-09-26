@@ -1,8 +1,14 @@
 # GitHub activation
 
 Chosen repository name: `nback-lab`. Owner: `lumensparkxy`. Visibility: public,
-explicitly selected in the setup conversation. No license has been granted yet;
-choose one deliberately before presenting the project as an open-source template.
+explicitly selected in the setup conversation. The original project is now
+available under the [MIT license](../LICENSE); bundled third-party materials
+retain their [separate notices and terms](third-party-assets.md).
+
+The sequence below records the original bootstrap procedure, not a current-state
+inventory. See [Android readiness workflows](android-readiness.md) for the later
+release tooling, and the [prompt playbook](guides/blank-slate-to-working-app-prompts.md)
+for a reusable sequence to apply in a new project.
 
 ## Activation sequence
 
