@@ -28,3 +28,16 @@ reduce reuse. Multiple writers in one checkout add avoidable coordination risk.
 Some checks can be automated; role behavior and owner judgment remain review
 responsibilities. CI files alone do not enforce branch protection. Validate the
 harness through a real feature and record local versus hosted evidence separately.
+
+
+## Amendment — explicit role models, 2026-09-26
+
+The owner approved explicit model and reasoning assignments for the four Codex
+roles, replacing the original model-inheritance choice for those roles only.
+Planner and implementer use `gpt-6-sol` with `high` effort; reviewer uses
+`gpt-6-astra` with `high`; verifier uses `gpt-6-sol` with `medium`.
+Assignments and runtime validation are documented in [agent roles](../agents.md).
+Portable scope, evidence and approval rules remain in shared Markdown; other
+agent tools can follow the same workflow without these model identifiers.
+Permissions and tool defaults remain inherited except for the existing role
+sandbox settings. No change to product architecture or release authorization.
