@@ -1,4 +1,5 @@
-# Models inherit the current user/session selection.
+# Custom roles select model and effort in .codex/agents/*.toml.
+# Other settings inherit the current user/session selection.
 # Workflow sequencing lives in AGENTS.md and docs/agents.md.
 [agents]
 enabled = true
