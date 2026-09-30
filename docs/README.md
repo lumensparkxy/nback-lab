@@ -16,6 +16,7 @@
 - [Toolchain and setup](toolchain.md)
 - [Development workflow](development.md) and [agent roles](agents.md)
 - [Source-bound harness evidence](harness-evidence.md)
+- [Live agent evaluations](agent-evaluation.md)
 - [Contribution guide](../CONTRIBUTING.md)
 - [Release, code-hygiene and ads/privacy workflows](android-readiness.md)
 

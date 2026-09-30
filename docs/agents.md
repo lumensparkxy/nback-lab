@@ -60,6 +60,9 @@ establish runtime model loading or effective permissions.
 Evaluate correctness, review findings, runtime and usage on real tasks before
 changing them. The lead continues to own integration, authorization and publishing;
 role files do not create approval or automatically run a release workflow.
+The [live evaluation runner](agent-evaluation.md) provides isolated, repeatable
+workflow scenarios and records available runtime/usage without changing these
+assignments. Its offline grader tests and live model runs are separate evidence.
 
 Planner and reviewer request a read-only sandbox; implementer and verifier request
 workspace-write. Verifier's no-source-edit rule is behavioral, not a filesystem

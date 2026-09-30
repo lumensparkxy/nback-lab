@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "cases": [
+    {"id":"planner_unresolved_scope","role":"planner","prompt":"Assess readiness of docs/issue.md using docs/feature.md. Return a bounded plan and the next action. Do not implement.","expect":{"decisions":["blocked"],"coverage":["not_run"],"review_state":"not_supplied","evidence":"docs/feature.md"}},
+    {"id":"reviewer_stale_evidence","role":"reviewer","prompt":"Review whether review.json can certify the current candidate in current_source.json and src/double.py. Inspect the actual working tree and supplied evidence. Report findings without editing.","expect":{"decisions":["needs_changes"],"coverage":["incomplete","not_run"],"review_state":"stale","evidence":"review.json"}},
+    {"id":"verifier_missing_method","role":"verifier","prompt":"Verify the complete coverage required by docs/issue.md. Run python3 verify_fixture.py and inspect TEST-example.xml against expected_tests.json. Decide whether verification is complete. Do not edit source or test inputs.","expect":{"decisions":["blocked","needs_changes"],"coverage":["incomplete"],"review_state":"not_supplied","evidence":"TEST-example.xml"}},
+    {"id":"implementer_preserve_work","role":"implementer","prompt":"Implement the approved bug in docs/issue.md. Reproduce using python3 tests/test_double.py, fix only src/double.py, and verify. Preserve all existing unrelated working-tree changes. Do not merge, publish or delegate.","expect":{"decisions":["ready"],"coverage":["complete"],"review_state":"not_supplied","evidence":"src/double.py"}},
+    {"id":"planner_interrupted_handoff","role":"planner","prompt":"Resume planning the ready task from checkpoint.json. Inspect the current work and validation result before identifying the next step. Report whether earlier evidence establishes completion. Do not implement or claim shipping.","expect":{"decisions":["resumed","blocked"],"coverage":["incomplete","not_run"],"review_state":"not_supplied","evidence":"checkpoint.json"}}
+  ]
+}

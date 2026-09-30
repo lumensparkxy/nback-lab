@@ -1,0 +1,13 @@
+{
+  "type":"object",
+  "properties":{
+    "decision":{"type":"string","description":"blocked or needs_changes prevents readiness; ready means the bounded approved task is verified; resumed means its plan is resumed, never shipped.","enum":["blocked","needs_changes","ready","resumed"]},
+    "reason":{"type":"string"},
+    "next_action":{"type":"string"},
+    "evidence":{"type":"array","items":{"type":"string"}},
+    "coverage":{"type":"string","description":"Current PASSING test evidence for every method required by the assigned task. Complete requires all to pass; incomplete includes missing, failed or stale results; not_run means no current tests were run or required.","enum":["complete","incomplete","not_run"]},
+    "review_state":{"type":"string","description":"Validity of the SUPPLIED review certificate. Use not_supplied when no certificate is supplied, even when you inspect or review the work yourself.","enum":["current","stale","not_supplied"]}
+  },
+  "required":["decision","reason","next_action","evidence","coverage","review_state"],
+  "additionalProperties":false
+}
