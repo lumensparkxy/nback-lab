@@ -10,6 +10,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 import xml.etree.ElementTree as ET
 
@@ -21,32 +22,44 @@ def digest(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def file_hash(path):
+def remaining(deadline):
+    if deadline is None:
+        return 3
+    seconds = deadline - time.monotonic()
+    if seconds <= 0:
+        raise TimeoutError('Source identity budget expired')
+    return min(3, seconds)
+
+
+def file_hash(path, deadline=None):
+    remaining(deadline)
     with Path(path).open('rb') as stream:
         checksum = hashlib.sha256()
         for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+            remaining(deadline)
             checksum.update(chunk)
     return checksum.hexdigest()
 
 
-def git(root, *arguments):
-    result = subprocess.run(['git', *arguments], cwd=root, capture_output=True, timeout=3)
+def git(root, *arguments, deadline=None):
+    result = subprocess.run(['git', *arguments], cwd=root, capture_output=True, timeout=remaining(deadline))
     if result.returncode:
         raise ValueError('Source identity requires an accessible Git checkout')
     return result.stdout
 
 
-def source_identity(root=ROOT):
+def source_identity(root=ROOT, deadline=None):
     """Hash tracked and nonignored untracked files, modes, symlinks and deletions.
 
     Never follow symlinks or read ignored build output, keys or local.properties.
     HEAD is provenance; the fingerprint identifies actual working files.
     """
     root = Path(root).resolve()
-    head = git(root, 'rev-parse', 'HEAD').decode().strip()
-    names = sorted(set(git(root, 'ls-files', '--cached', '--others', '--exclude-standard', '-z').split(b'\0')) - {b''})
+    head = git(root, 'rev-parse', 'HEAD', deadline=deadline).decode().strip()
+    names = sorted(set(git(root, 'ls-files', '--cached', '--others', '--exclude-standard', '-z', deadline=deadline).split(b'\0')) - {b''})
     entries = []
     for raw in names:
+        remaining(deadline)
         name = os.fsdecode(raw)
         path = root / name
         try:
@@ -57,10 +70,11 @@ def source_identity(root=ROOT):
         if stat.S_ISLNK(mode):
             entries.append([name, 'symlink', digest(os.fsencode(os.readlink(path)))])
         elif stat.S_ISREG(mode):
-            entries.append([name, 'file', bool(mode & stat.S_IXUSR), file_hash(path)])
+            entries.append([name, 'file', bool(mode & stat.S_IXUSR), file_hash(path, deadline=deadline)])
         else:
             raise ValueError(f'Unsupported source entry: {name}')
-    status = git(root, 'status', '--porcelain', '-z', '--untracked-files=all')
+    status = git(root, 'status', '--porcelain', '-z', '--untracked-files=all', deadline=deadline)
+    remaining(deadline)
     return {'head': head, 'fingerprint': digest(json.dumps(entries, ensure_ascii=True, separators=(',', ':')).encode()),
             'dirty': bool(status), 'file_count': len(entries)}
 

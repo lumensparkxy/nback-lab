@@ -41,3 +41,15 @@ Portable scope, evidence and approval rules remain in shared Markdown; other
 agent tools can follow the same workflow without these model identifiers.
 Permissions and tool defaults remain inherited except for the existing role
 sandbox settings. No change to product architecture or release authorization.
+
+## Amendment — evidence and recovery adapter, 2026-09-30
+
+The owner approved the five-stage [H002 extension](../features/H002-harness-reliability.md):
+source-bound evidence, approved role drift checks, full candidate release
+preflight, isolated live evaluations and project-local lifecycle checkpoints.
+Shared Python/Markdown commands remain the portable workflow. Optional Codex
+hooks reload bounded curated progress rather than retaining private transcripts.
+They are advisory and require native trust of their exact definitions; they do
+not enforce scope, grant approval, certify tests or replace GitHub task status.
+No global configuration, role assignments, application behavior, routine critical
+CI coverage or release/merge authorization is changed by this extension.

@@ -5,10 +5,12 @@ import re
 import sys
 import tomllib
 from role_contract import check_roles
+from hook_contract import check_hooks
 
 ROOT = Path(__file__).resolve().parent.parent
 errors = []
 errors.extend(check_roles(ROOT))
+errors.extend(check_hooks(ROOT))
 required = [
     'AGENTS.md', 'README.md', 'CONTRIBUTING.md', 'docs/product.md',
     'docs/development.md', 'docs/agents.md', 'docs/toolchain.md',
@@ -47,4 +49,4 @@ for role in ('planner', 'implementer', 'reviewer', 'verifier'):
 if errors:
     print('\n'.join(errors), file=sys.stderr)
     sys.exit(1)
-print('Harness structure, links, TOML syntax and approved role settings passed (static checks only).')
+print('Harness structure, links, TOML syntax, approved roles and checkpoint hooks passed (static checks only).')
