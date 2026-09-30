@@ -52,6 +52,11 @@ configuration. Model availability must be verified on the host running the role;
 report unavailable models rather than silently substituting another one.
 
 These are initial role assignments, not a benchmarked claim of superiority.
+The [machine-readable contract](agent-role-contract.json) encodes these accepted
+assignments and shared concurrency. `check_harness.py` rejects static drift,
+missing settings and unapproved role overrides. Amend the contract, documentation
+and accepted decision together for an owner-approved change. These checks do not
+establish runtime model loading or effective permissions.
 Evaluate correctness, review findings, runtime and usage on real tasks before
 changing them. The lead continues to own integration, authorization and publishing;
 role files do not create approval or automatically run a release workflow.

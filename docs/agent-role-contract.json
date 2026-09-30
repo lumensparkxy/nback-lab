@@ -1,0 +1,9 @@
+{
+  "agents": {"enabled": true, "max_concurrent_threads_per_session": 2},
+  "roles": {
+    "planner": {"model": "gpt-6-sol", "model_reasoning_effort": "high", "sandbox_mode": "read-only"},
+    "implementer": {"model": "gpt-6-sol", "model_reasoning_effort": "high", "sandbox_mode": "workspace-write"},
+    "reviewer": {"model": "gpt-6-astra", "model_reasoning_effort": "high", "sandbox_mode": "read-only"},
+    "verifier": {"model": "gpt-6-sol", "model_reasoning_effort": "medium", "sandbox_mode": "workspace-write"}
+  }
+}
