@@ -159,6 +159,9 @@ workflow file is not a protected-branch rule. See [GitHub setup](github-setup.md
 
 ## Handoff and learning
 
+See [harness evidence](harness-evidence.md) for machine-readable source identity,
+preserved Android reports and review registration.
+
 When interrupted, record issue/spec links, branch and revision, changes made,
 commands/results, review findings, remaining steps and concrete blockers in the
 issue/PR. Keep large generated artifacts out of Git; link to CI artifacts.

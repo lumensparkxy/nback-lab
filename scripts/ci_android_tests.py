@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+from harness_evidence import android_record, junit_methods, same_source, source_identity
 
 ROOT = Path(__file__).resolve().parent.parent
 # Keep selectors explicit so coverage changes are reviewable; no test implementation is removed.
@@ -67,17 +68,7 @@ def report_signatures(directory):
 
 
 def check_reports(paths, expected):
-    passed = set()
-    for path in paths:
-        for test in ET.parse(path).getroot().iter('testcase'):
-            name = test.get('classname', '') + '#' + test.get('name', '')
-            if any(test.find(tag) is not None for tag in ('failure', 'error', 'skipped')):
-                raise ValueError(f'Test did not pass: {name}')
-            passed.add(name)
-    missing = set(expected) - passed
-    if not passed or missing:
-        raise ValueError(f'Missing executed tests: {sorted(missing)}')
-    return len(passed)
+    return len(junit_methods(paths, expected))
 
 
 def main():
@@ -86,7 +77,8 @@ def main():
     args = parser.parse_args()
     try:
         expected = full_inventory() if args.suite == 'full' else [PREFIX + test for test in CRITICAL]
-    except ValueError as error:
+        source_before = source_identity(ROOT)
+    except (ValueError, OSError, subprocess.TimeoutExpired) as error:
         print(f'Android CI inventory failed: {error}', file=sys.stderr)
         return 1
     command = [str(ROOT / 'scripts/emulator-test.sh')]
@@ -96,14 +88,23 @@ def main():
     before = report_signatures(reports)
     result = subprocess.run(command, cwd=ROOT)
     if result.returncode:
+        android_record(ROOT, args.suite, source_before, None, expected, [], result.returncode,
+                       'Android command failed; no passing evidence accepted')
         return result.returncode
     fresh = [p for p, signature in report_signatures(reports).items() if before.get(p) != signature]
     try:
         count = check_reports(fresh, expected)
-    except (ValueError, ET.ParseError) as error:
+        source_after = source_identity(ROOT)
+        if not same_source(source_before, source_after):
+            raise ValueError('Source changed during Android validation')
+        record = android_record(ROOT, args.suite, source_before, source_after, expected, fresh, 0)
+    except (ValueError, OSError, ET.ParseError, subprocess.TimeoutExpired) as error:
+        android_record(ROOT, args.suite, source_before, None, expected, [], 1,
+                       'Android evidence rejected')
         print(f'Android CI evidence failed: {error}', file=sys.stderr)
         return 1
     print(f'Android {args.suite} suite: {count} tests passed; all {len(expected)} expected tests executed.')
+    print(f'Android evidence: {record}')
     return 0
 
 

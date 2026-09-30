@@ -7,14 +7,27 @@ import io
 from contextlib import redirect_stderr
 from unittest.mock import patch
 import unittest
+import sys
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'scripts'))
 spec = importlib.util.spec_from_file_location('ci_android_tests', ROOT / 'scripts/ci_android_tests.py')
 ci = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ci)
 
 
 class CriticalSuiteTest(unittest.TestCase):
+    def setUp(self):
+        # Runner unit tests isolate the new record writer; evidence integration
+        # has its own real temporary-checkout regressions.
+        source = {'head': 'a' * 40, 'fingerprint': 'b' * 64, 'dirty': False, 'file_count': 1}
+        identity = patch.object(ci, 'source_identity', return_value=source)
+        writer = patch.object(ci, 'android_record', return_value=Path('fixture-evidence.json'))
+        self.identity = identity.start()
+        self.writer = writer.start()
+        self.addCleanup(identity.stop)
+        self.addCleanup(writer.stop)
+
     def test_selection_names_real_tests_without_duplicates(self):
         self.assertEqual(len(ci.CRITICAL), len(set(ci.CRITICAL)))
         for selector in ci.CRITICAL:
@@ -91,6 +104,20 @@ class CriticalSuiteTest(unittest.TestCase):
              patch.object(ci, 'report_signatures', side_effect=[{}, {path: (1, 1)}]):
             run.return_value.returncode = 0
             self.assertEqual(ci.main(), 0)
+
+    def test_source_change_cannot_certify_successful_android_command(self):
+        original = self.identity.return_value
+        self.identity.side_effect = [original, original | {'fingerprint': 'c' * 64}]
+        path = self.report('<testcase classname="Example" name="one"/>')
+        with patch.object(ci.sys, 'argv', ['ci_android_tests.py', 'full']), \
+             patch.object(ci, 'full_inventory', return_value=['Example#one']), \
+             patch.object(ci.subprocess, 'run') as run, \
+             patch.object(ci, 'report_signatures', side_effect=[{}, {path: (1, 1)}]), \
+             redirect_stderr(io.StringIO()) as errors:
+            run.return_value.returncode = 0
+            self.assertEqual(ci.main(), 1)
+            self.assertIn('Source changed', errors.getvalue())
+            self.assertEqual(1, self.writer.call_args.args[6])
 
     def test_full_inventory_rejects_unsupported_annotations(self):
         with tempfile.TemporaryDirectory() as folder:
