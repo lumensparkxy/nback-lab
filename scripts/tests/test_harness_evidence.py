@@ -1,10 +1,12 @@
 """Evidence acceptance must survive stale source, report and review failures."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -58,6 +60,41 @@ class EvidenceTest(unittest.TestCase):
         (self.root / 'private.jks').write_text('fixture only')
         (self.root / 'local.properties').write_text('fixture only')
         self.assertTrue(evidence.same_source(before, evidence.source_identity(self.root)))
+
+    def test_effective_gradle_user_home_properties_are_hashed_without_values(self):
+        home = self.root / 'artifacts/gradle-home'
+        home.mkdir(parents=True)
+        properties = home / 'gradle.properties'
+        for arguments in ((), ('-g', str(home)), ('--gradle-user-home', str(home)),
+                          ('--gradle-user-home=' + str(home),)):
+            with self.subTest(arguments=arguments), patch.dict(os.environ, {'GRADLE_USER_HOME': str(home)}):
+                properties.write_text('nback.liveAds=false\n')
+                before = evidence.build_inputs(self.root, arguments)
+                properties.write_text('nback.liveAds=true\n')
+                after = evidence.build_inputs(self.root, arguments)
+                self.assertNotEqual(before, after)
+                self.assertNotIn(str(home), json.dumps(after))
+                self.assertNotIn('liveAds', json.dumps(after))
+        other = self.root / 'artifacts/other-home'
+        other.mkdir()
+        (other / 'gradle.properties').write_text('different')
+        with patch.dict(os.environ, {'GRADLE_USER_HOME': str(other)}):
+            self.assertEqual(evidence.build_inputs(self.root, ('-g', str(home)))['properties_sha256'][1],
+                             evidence.file_hash(properties))
+
+    def test_jvm_user_home_override_and_missing_home_fail_closed(self):
+        for key in ('GRADLE_OPTS', 'JAVA_OPTS', 'JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS'):
+            with self.subTest(key=key):
+                with patch.dict(os.environ, {key: '-Dorg.gradle.project.nback.liveAds=false'}):
+                    before = evidence.build_inputs(self.root)
+                with patch.dict(os.environ, {key: '-Dorg.gradle.project.nback.liveAds=true'}):
+                    self.assertNotEqual(before, evidence.build_inputs(self.root))
+                with patch.dict(os.environ, {key: '-Dgradle.user.home=somewhere'}):
+                    with self.assertRaisesRegex(ValueError, 'JVM user-home override'):
+                        evidence.build_inputs(self.root)
+        for arguments in (('-g',), ('--gradle-user-home=',)):
+            with self.assertRaisesRegex(ValueError, 'requires a path'):
+                evidence.build_inputs(self.root, arguments)
 
     def test_preserved_passing_reports_survive_later_build_output_changes(self):
         path = self.android()

@@ -71,6 +71,35 @@ def same_source(left, right):
                     for key in ('head', 'fingerprint', 'dirty', 'file_count')))
 
 
+def build_inputs(root=ROOT, arguments=()):
+    """Opaque hashes of external Gradle inputs; never store values or host paths."""
+    root = Path(root)
+    home = os.environ.get('GRADLE_USER_HOME') or str(Path.home() / '.gradle')
+    arguments = list(arguments)
+    for index, argument in enumerate(arguments):
+        if argument in ('-g', '--gradle-user-home'):
+            if index + 1 >= len(arguments) or arguments[index + 1].startswith('-'):
+                raise ValueError('Gradle user home requires a path')
+            home = arguments[index + 1]
+        elif argument.startswith('--gradle-user-home='):
+            home = argument.split('=', 1)[1]
+    if not home:
+        raise ValueError('Gradle user home requires a path')
+    home = Path(home)
+    if not home.is_absolute():
+        home = root / home
+    # JVM system-property redirects would otherwise hide the effective properties.
+    if any('gradle.user.home' in os.environ.get(key, '') for key in
+           ('GRADLE_OPTS', 'JAVA_OPTS', 'JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS')):
+        raise ValueError('Use GRADLE_USER_HOME or --gradle-user-home instead of a JVM user-home override')
+    properties = [root / 'local.properties', home / 'gradle.properties']
+    environment = {key: value for key, value in os.environ.items()
+                   if key.startswith('ORG_GRADLE_PROJECT_') or key in ('GRADLE_OPTS', 'JAVA_OPTS', 'JAVA_TOOL_OPTIONS', 'JDK_JAVA_OPTIONS')}
+    return {'arguments_sha256': digest(json.dumps(arguments, separators=(',', ':')).encode()),
+            'properties_sha256': [file_hash(path) if path.is_file() else None for path in properties],
+            'environment_sha256': digest(json.dumps(environment, sort_keys=True, separators=(',', ':')).encode())}
+
+
 def atomic_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -117,13 +146,14 @@ def preserve_reports(folder, paths):
     return records
 
 
-def android_record(root, suite, before, after, expected, paths, exit_code, reason=None):
+def android_record(root, suite, before, after, expected, paths, exit_code, reason=None, configuration=None):
     folder = Path(root) / 'artifacts/evidence' / ('android-' + uuid.uuid4().hex)
     folder.mkdir(parents=True)
     record = {'schema': SCHEMA, 'kind': 'android', 'created_at': datetime.now(timezone.utc).isoformat(),
               'suite': suite, 'source_before': before, 'source_after': after,
               'serial': os.environ.get('ANDROID_SERIAL', ''), 'exit_code': exit_code,
               'expected_methods': list(expected), 'reports': preserve_reports(folder, paths),
+              'build_inputs': configuration,
               'ci': {key: os.environ[key] for key in ('GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT') if key in os.environ}}
     record['status'] = 'failed'
     if reason:

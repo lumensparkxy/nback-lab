@@ -119,6 +119,23 @@ class CriticalSuiteTest(unittest.TestCase):
             self.assertIn('Source changed', errors.getvalue())
             self.assertEqual(1, self.writer.call_args.args[6])
 
+    def test_candidate_arguments_are_forwarded_and_configuration_change_fails(self):
+        with patch.object(ci.sys, 'argv', ['ci_android_tests.py', 'full', '--', '-Pcandidate=fixture']), \
+             patch.object(ci.subprocess, 'run') as run:
+            run.return_value.returncode = 17
+            self.assertEqual(17, ci.main())
+            self.assertEqual(['-Pcandidate=fixture'], run.call_args.args[0][1:])
+        path = self.report('<testcase classname="Example" name="one"/>')
+        with patch.object(ci.sys, 'argv', ['ci_android_tests.py', 'full']), \
+             patch.object(ci, 'full_inventory', return_value=['Example#one']), \
+             patch.object(ci.subprocess, 'run') as run, \
+             patch.object(ci, 'report_signatures', side_effect=[{}, {path: (1, 1)}]), \
+             patch.object(ci, 'build_inputs', side_effect=[{'hash': 'before'}, {'hash': 'after'}]), \
+             redirect_stderr(io.StringIO()) as errors:
+            run.return_value.returncode = 0
+            self.assertEqual(ci.main(), 1)
+            self.assertIn('Build inputs changed', errors.getvalue())
+
     def test_full_inventory_rejects_unsupported_annotations(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
