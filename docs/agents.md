@@ -37,10 +37,18 @@ are in [.codex/agents](../.codex/agents). The owner-approved assignments are:
 
 | Role | Model | Reasoning effort |
 | --- | --- | --- |
-| Planner | `gpt-6-sol` | `high` |
-| Implementer | `gpt-6-sol` | `high` |
+| Planner | `gpt-6.1-sol` | `xhigh` |
+| Implementer | `gpt-6.1-sol` | `xhigh` |
 | Reviewer | `gpt-6-astra` | `high` |
-| Verifier | `gpt-6-sol` | `medium` |
+| Verifier | `gpt-6.1-sol` | `high` |
+
+The 2026-10-01 [ADR-001 amendment](decisions/ADR-001-portable-agent-workflow.md)
+records the approved Sol upgrade and one-level effort increase. Reviewer retains
+its Astra/high assignment. Use a Codex runtime that supports `gpt-6.1-sol`:
+the desktop-bundled CLI 0.159.2 accepted the model during compatibility checks,
+while standalone CLI 0.158.0 rejected it. The live evaluation runner uses `codex`
+from `PATH`; select a compatible runtime for that invocation. Project role files
+do not upgrade the CLI or change global configuration.
 
 Both fields are explicit in each role file. Under current Codex configuration
 precedence, these role settings override inherited or spawn-selected values.
