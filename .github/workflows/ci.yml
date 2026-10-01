@@ -116,6 +116,7 @@ jobs:
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
             artifacts/emulator-operations/
+            artifacts/evidence/
 
   gate:
     name: gate

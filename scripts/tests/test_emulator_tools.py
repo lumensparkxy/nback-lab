@@ -12,6 +12,7 @@ import time
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / 'scripts'))
 spec = importlib.util.spec_from_file_location('emulator_tools', ROOT / 'scripts/emulator_tools.py')
 helper = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(helper)
@@ -42,6 +43,8 @@ if stage == 'state': print(os.environ.get('FAKE_STATE', 'device'))
 if stage == 'emulator': print(os.environ.get('FAKE_EMULATOR', '1'))
 if stage == 'health': print(os.environ.get('FAKE_HEALTH', '0'))
 if stage == 'gradle': print('live build output', flush=True)
+if stage == 'gradle' and os.environ.get('FAKE_MUTATE_SOURCE'):
+    Path('source.txt').write_text('changed during build')
 '''
 
 
@@ -51,7 +54,7 @@ class EmulatorToolsTest(unittest.TestCase):
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
         (self.root / 'scripts').mkdir()
-        for name in ('emulator_tools.py', 'emulator-test.sh', 'run-app.sh', 'env.sh'):
+        for name in ('emulator_tools.py', 'harness_evidence.py', 'emulator-test.sh', 'run-app.sh', 'env.sh'):
             shutil.copyfile(ROOT / 'scripts' / name, self.root / 'scripts' / name)
         sdk = self.root / 'sdk'; (sdk / 'platform-tools').mkdir(parents=True)
         for path in (self.root / 'gradlew', sdk / 'platform-tools/adb'):
@@ -100,6 +103,19 @@ class EmulatorToolsTest(unittest.TestCase):
         self.assertEqual(['state', 'emulator', 'health', 'gradle', 'install', 'launch'], [c['stage'] for c in self.calls()])
         self.assertIn(':app:assembleDebug', self.calls()[3]['args'])
         self.assertTrue(all(c['args'][:2] == ['-s', 'emulator-5998'] for c in self.calls() if c['stage'] != 'gradle'))
+
+    def test_source_change_invalidates_successful_emulator_operation(self):
+        (self.root / '.gitignore').write_text('artifacts/\ncalls.jsonl\nsdk/\n')
+        (self.root / 'source.txt').write_text('original source')
+        for arguments in (['init', '-q'], ['add', '.'],
+                          ['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture']):
+            subprocess.run(['git', *arguments], cwd=self.root, check=True, capture_output=True)
+        result = self.invoke(FAKE_MUTATE_SOURCE='1')
+        self.assertEqual(1, result.returncode, result.stderr)
+        record = self.records()[0]
+        self.assertEqual('invalidated', record['evidence_status'])
+        self.assertEqual('failed', record['status'])
+        self.assertNotEqual(record['source_before']['fingerprint'], record['source_after']['fingerprint'])
 
     def test_healthy_probe_stderr_does_not_change_protocol_results(self):
         result = self.invoke(FAKE_STDERR='1')

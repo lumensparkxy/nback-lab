@@ -72,6 +72,9 @@ certify later edits. Update relevant specs and decisions in the same PR.
 Link the issue in the PR and include evidence, limitations and pending decisions.
 Do not merge, close an implementation issue as shipped, or publish without the
 agreed owner authorization. Leave a concise durable handoff if work is incomplete.
+Use [local handoff notes](docs/agent-checkpoints.md) before long validation and at
+meaningful progress boundaries when a native session id is available. Automatic
+checkpoint context is a resume hint; revalidate stale evidence and issue scope.
 After an authorized merge, follow the repository's
 [delivery closeout](docs/development.md#delivery-closeout). Preserve unique
 evidence and active or uncertain work; clean up only verified completed-task work.

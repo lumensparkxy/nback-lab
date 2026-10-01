@@ -35,6 +35,10 @@ selected emulator. Reports distinguish local checks, hosted CI and branch rules.
 
 ## Bootstrap questions and later resolutions
 
+The owner-approved [H002 extension](H002-harness-reliability.md) adds source-bound
+evidence, configuration drift checks, release preflight, agent evaluations and
+recovery checkpoints in five sequential stages.
+
 Publication licensing and an owned app identifier were open during bootstrap.
 The original project is now [MIT licensed](../../LICENSE), with
 [separate third-party terms](../third-party-assets.md). The owner selected

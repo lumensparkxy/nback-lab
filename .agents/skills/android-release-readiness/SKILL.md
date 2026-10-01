@@ -27,6 +27,11 @@ that affect the next action.
    or the equivalent full CI workflow on the candidate revision. Routine critical
    CI is insufficient. Reuse existing evidence only after verifying its revision,
    configuration, coverage and artifact identity; report missing checks as such.
+   Run `python3 scripts/release_preflight.py check --android-evidence <record>`
+   after the source-bound unsigned build and full suite. Pass the same extra
+   Gradle arguments after `--` to build, tests and preflight. Supply the verified
+   distributed baseline with `--previous-version-code` when known. A passing
+   preflight does not certify optimized installed, signed or Play-delivered builds.
 3. Inspect the actual unsigned APK/AAB, merged manifest, R8 mapping and report.
    Install optimized `.qa` releaseSmoke only on an explicitly selected emulator;
    exercise current Home, Settings, How to Play/practice, completed results,

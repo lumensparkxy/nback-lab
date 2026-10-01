@@ -33,6 +33,7 @@ Position-only history is preserved. Practice and unfinished sessions are not sav
 - [Feature specifications](docs/features/README.md)
 - [Architecture decisions](docs/decisions/README.md)
 - [Development workflow](docs/development.md) and [agent roles](docs/agents.md)
+- [Harness evidence](docs/harness-evidence.md), [live agent evaluations](docs/agent-evaluation.md) and [resumable handoffs](docs/agent-checkpoints.md)
 - [Toolchain and setup](docs/toolchain.md)
 - [Release, code-hygiene and ads/privacy workflows](docs/android-readiness.md)
 - [GitHub activation and issue drafts](docs/github-setup.md)
@@ -75,7 +76,7 @@ macOS/Linux SDK locations or respect `JAVA_HOME` and `ANDROID_HOME`.
 | `docs/decisions/` | Accepted and proposed architectural decisions |
 | `scripts/` | Portable local and CI commands |
 | `.github/` | Issue/PR templates and automated checks |
-| `.codex/` | Optional Codex-specific role configuration |
+| `.codex/` | Optional Codex role configuration and trusted lifecycle hooks |
 
 GitHub issues own task status and priority. Feature docs own behavior. The harness
 can be used by any agent that follows [AGENTS.md](AGENTS.md) and runs the shared

@@ -1,0 +1,56 @@
+{
+  "description": "Advisory local checkpoints; requires native review and trust of these exact definitions.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/harness_checkpoint.py\" hook",
+            "timeout": 5,
+            "statusMessage": "Loading local handoff checkpoint",
+            "additionalContextLimit": 2000
+          }
+        ],
+        "matcher": "^(startup|resume|compact)$"
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/harness_checkpoint.py\" hook",
+            "timeout": 5,
+            "statusMessage": "Saving local handoff checkpoint"
+          }
+        ],
+        "matcher": "^(manual|auto)$"
+      }
+    ],
+    "Interrupt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/harness_checkpoint.py\" hook",
+            "timeout": 3,
+            "statusMessage": "Saving local handoff checkpoint"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/harness_checkpoint.py\" hook",
+            "timeout": 5,
+            "statusMessage": "Saving local handoff checkpoint"
+          }
+        ]
+      }
+    ]
+  }
+}

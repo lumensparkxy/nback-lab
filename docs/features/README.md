@@ -12,6 +12,7 @@ and an updated specification in the same PR as the implementation.
 | F007 | [Ad-supported monetization](F007-ad-supported-monetization.md) | Agreed for implementation, 2026-09-24; issue #31 |
 | F006 | [Session interval and accuracy timeline](F006-session-interval-and-accuracy-timeline.md) | Agreed, 2026-09-21 |
 | F000 | [Development harness](F000-harness.md) | Agreed blueprint |
+| H002 | [Harness evidence, validation and recovery](H002-harness-reliability.md) | Agreed, 2026-09-30; issue #39 |
 | F001 | [Visual session](F001-visual-session.md) | Agreed, 2026-09-20 |
 | F002 | [Session settings and guided practice](F002-practice-and-difficulty.md) | Agreed, 2026-09-21 |
 | F003 | [Results and local history](F003-results-and-history.md) | Agreed, 2026-09-21 |

@@ -12,6 +12,7 @@ import sys
 import tempfile
 import time
 import uuid
+from harness_evidence import same_source, source_identity
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULTS = {'ADB': 10, 'GRADLE': 1200, 'INSTALL': 120, 'LAUNCH': 30}
@@ -137,6 +138,10 @@ def main(arguments):
             raise OperationFailure('Set ANDROID_SERIAL to the intended emulator', 2)
         record['mode'] = arguments[0]
         record['revision'] = revision()
+        try:
+            record['source_before'] = source_identity(ROOT)
+        except (ValueError, OSError, subprocess.TimeoutExpired):
+            record['source_before'] = None
         runner = Runner(record)
         adb = ['adb', '-s', serial]
         if runner.run('device-state', adb + ['get-state'], limits['ADB'], True) != 'device':
@@ -162,6 +167,17 @@ def main(arguments):
         record['reason'] = 'Interrupted by signal'
         print('Emulator operation interrupted.', file=sys.stderr)
     finally:
+        try:
+            record['source_after'] = source_identity(ROOT) if record.get('source_before') else None
+        except (ValueError, OSError, subprocess.TimeoutExpired):
+            record['source_after'] = None
+        stable = same_source(record.get('source_before'), record.get('source_after'))
+        record['evidence_status'] = 'stable' if stable else 'unavailable'
+        if record.get('source_before') and not stable:
+            record['evidence_status'] = 'invalidated'
+            record['reason'] = 'Source changed or became unavailable during emulator operation'
+            if code == 0:
+                code = 1
         record.update(exit_code=code, status='passed' if code == 0 else 'failed',
                       elapsed_seconds=round(time.monotonic() - started, 3))
         write_record(record)

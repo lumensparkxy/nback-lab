@@ -52,9 +52,17 @@ configuration. Model availability must be verified on the host running the role;
 report unavailable models rather than silently substituting another one.
 
 These are initial role assignments, not a benchmarked claim of superiority.
+The [machine-readable contract](agent-role-contract.json) encodes these accepted
+assignments and shared concurrency. `check_harness.py` rejects static drift,
+missing settings and unapproved role overrides. Amend the contract, documentation
+and accepted decision together for an owner-approved change. These checks do not
+establish runtime model loading or effective permissions.
 Evaluate correctness, review findings, runtime and usage on real tasks before
 changing them. The lead continues to own integration, authorization and publishing;
 role files do not create approval or automatically run a release workflow.
+The [live evaluation runner](agent-evaluation.md) provides isolated, repeatable
+workflow scenarios and records available runtime/usage without changing these
+assignments. Its offline grader tests and live model runs are separate evidence.
 
 Planner and reviewer request a read-only sandbox; implementer and verifier request
 workspace-write. Verifier's no-source-edit rule is behavioral, not a filesystem
@@ -72,3 +80,12 @@ the role file. Keep model-loading proof separate from sandbox enforcement proof.
 Do not edit global trust or tool configuration automatically.
 
 Source: [official Codex subagent documentation](https://learn.chatgpt.com/docs/agent-configuration/subagents).
+
+## Resumable handoffs
+
+Record a [bounded public checkpoint note](agent-checkpoints.md) before long
+validation and at meaningful handoff boundaries. Trusted project lifecycle hooks
+automatically save source/event checkpoints and reload that session's latest
+curated progress. Treat this context as a hint; reread the issue/spec and validate
+current evidence. Earlier passes become stale when the source changes. Callback
+tests and native discovery do not prove hooks are trusted or executing.
