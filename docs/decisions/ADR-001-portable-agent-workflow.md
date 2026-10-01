@@ -53,3 +53,18 @@ They are advisory and require native trust of their exact definitions; they do
 not enforce scope, grant approval, certify tests or replace GitHub task status.
 No global configuration, role assignments, application behavior, routine critical
 CI coverage or release/merge authorization is changed by this extension.
+
+## Amendment — Sol role upgrade, 2026-10-01
+
+The owner approved moving planner and implementer to `gpt-6.1-sol` with `xhigh`
+effort and verifier to `gpt-6.1-sol` with `high`, increasing each role's effort by
+one level. Reviewer retains `gpt-6-astra` with `high`. This supersedes the
+2026-09-26 model assignments for those three roles only.
+
+The role files, [approved contract](../agent-role-contract.json) and
+[agent documentation](../agents.md) define the same assignments. Use a compatible
+Codex runtime and verify actual role loading in a fresh session. Model access and
+simple throughput checks do not establish general coding or review quality;
+keep workflow evaluations and runtime evidence separate from static validation.
+The change preserves role instructions, sandbox settings, concurrency, global
+configuration, product behavior and owner merge/release approval boundaries.
