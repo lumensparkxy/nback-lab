@@ -10,7 +10,7 @@ Serialize persistence, reserve a quota before show, and conservatively retain
 reservations after uncertain process loss; definite failure restores the quota.
 Store failure disables ads, never gameplay. No destructive corruption handler.
 
-Apply GMA CHILD request treatment, UMP under-age-of-consent independently, PG
+Apply GMA CHILD request treatment, UMP under-age-of-consent independently, G
 content ceiling and npa=1 for all users. This implements the selected conservative
 no-age-collection approach; consent dialogs may be suppressed by UMP. Worldwide
 legal and store disclosures remain release review, not an SDK guarantee.
@@ -29,3 +29,14 @@ Activities across destruction or defer an ad onto a different screen.
 Sources: [F007](../features/F007-ad-supported-monetization.md),
 [Google age treatment](https://developers.google.com/admob/android/targeting),
 [UMP](https://developers.google.com/admob/android/privacy/gdpr).
+
+## 2026-10-31 content-rating amendment
+
+The owner approved changing the maximum ad content rating from PG to G because
+the published app is rated PEGI 3 / IARC 3+. Google maps G to Play 3+ and PG to
+Play 7+. The SDK ceiling overrides Console settings, so the correction requires
+an app update. CHILD treatment, UMP under-age treatment and npa=1 remain unchanged.
+Preparation for internal testing is authorized; production publication is separate.
+
+Sources: [rating mapping](https://support.google.com/admob/answer/10478094),
+[SDK precedence](https://support.google.com/admob/answer/7562142).

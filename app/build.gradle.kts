@@ -30,8 +30,8 @@ android {
         applicationId = "com.maswadkar.nback"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 4
+        versionName = "0.1.3"
         testInstrumentationRunner = "com.maswadkar.nback.NBackTestRunner"
         manifestPlaceholders["admobAppId"] = testAppId
         buildConfigField("boolean", "ADS_ENABLED", "false")

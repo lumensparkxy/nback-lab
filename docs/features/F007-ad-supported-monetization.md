@@ -136,7 +136,7 @@ infer age from scores or assume every teen can consent as an adult. Worldwide
 is the distribution target; ad eligibility remains subject to the approved
 regional privacy treatment. SDK/consent treatment is specified below.
 
-Use non-personalized requests (`npa=1`) and a maximum ad content rating of PG.
+Use non-personalized requests (`npa=1`) and a maximum ad content rating of G.
 Apply conservative treatment to **all** users, without collecting age or birthdate:
 GMA `AgeRestrictedTreatment.CHILD` (the SDK's replacement for under-age-of-consent
 request treatment) and, independently, UMP `setTagForUnderAgeOfConsent(true)`.
@@ -144,7 +144,7 @@ This is a request-treatment policy, not a claim that the audience is under 13.
 
 | Audience/region | UMP | GMA | Ad eligibility |
 | --- | --- | --- | --- |
-| Ages 13–17, adults or unknown; EEA/UK/Switzerland | Under-age-of-consent treatment | CHILD, PG, npa=1 | Only after UMP permits requests |
+| Ages 13–17, adults or unknown; EEA/UK/Switzerland | Under-age-of-consent treatment | CHILD, G, npa=1 | Only after UMP permits requests |
 | Same audience; other launch regions | Same conservative setting | Same conservative settings | Same gate; no personalized fallback |
 | Initialization/consent error without valid permission | No assumed approval | No requests | Exercises remain usable |
 
@@ -194,7 +194,7 @@ need separate manual evidence; fake UI tests cannot certify them.
 | AC-06 | One eligible tap produces at most one ad and one Home navigation; definite show failure restores quota and cooldown; uncertain process loss is conservative | Double taps, duplicate/reordered callbacks, show-failure rollback, reservation-write/navigation race, rotation and process-loss tests |
 | AC-07 | Ads cannot alter completion/history or active timing, and storage failure disables ads only | Pending history save during ad, corrupt/unwritable monetization store and active-session callback tests |
 | AC-08 | UMP permission precedes requests; required privacy options work; denied/error/changed consent preserves gameplay | Fake consent matrix plus UMP test geography/forms; cached-ad invalidation |
-| AC-09 | Agreed age treatment, non-personalization and PG content restrictions are applied before requests; unknown/unsupported cases suppress ads | Request-configuration assertions and approved country/age matrix tests |
+| AC-09 | Agreed age treatment, non-personalization and G content restrictions are applied before requests; unknown/unsupported cases suppress ads | Request-configuration assertions and approved country/age matrix tests |
 | AC-10 | Privacy controls remain accessible without obscuring Start or current settings | Emulator screenshots, TalkBack and 200% text in portrait/landscape |
 | AC-11 | Development/CI use fake services or Google test ads; release configuration cannot accidentally ship test/incomplete monetization setup | Build-variant/config validation; official test-ad smoke evidence |
 | AC-12 | Audience, disclosures, owned app ID and ad configuration are approved before production enablement | Release evidence checklist tied to final build; missing prerequisites block release |
@@ -206,7 +206,7 @@ need separate manual evidence; fake UI tests cannot certify them.
 | D1 | Intended age range | Owner confirmed teens and adults aged 13+ on 2026-09-24. Audience treatment is covered by D4. |
 | D2 | Launch countries | Owner confirmed worldwide availability on 2026-09-24. Regional ad eligibility is covered by D4. |
 | D3 | Revenue model | Owner selected ads only initially on 2026-09-24. Purchases, prices and purchase verification are deferred. |
-| D4 | Ad personalization and content | Resolved within owner-approved conservative all-user design: GMA CHILD, UMP under-age treatment, PG, npa=1; no age collection. Matrix above. |
+| D4 | Ad personalization and content | Resolved within owner-approved conservative all-user design: GMA CHILD, UMP under-age treatment, G, npa=1; no age collection. Matrix above. |
 | D5 | Placement and limits | Owner confirmed the proposed timing on 2026-09-24: Results Home opportunity from completion #6, then 3 sessions AND 5 minutes, plus the 5-minute process-start guard. Play again stays ad-free. |
 | D6 | Owned application ID, AdMob IDs, policy URL and account ownership | Owner-supplied release inputs. Test adapters can precede production values after scope approval. |
 
@@ -251,6 +251,12 @@ account, device capability or release prerequisite is blocked/not run, not passe
 No emulator wipe or physical device selection is implied.
 
 ## Agreement record
+
+- 2026-10-31: Owner approved tightening the ad ceiling from PG to G to match
+  the published PEGI 3 / IARC 3+ rating, and preparing a tested internal-release
+  update. Age treatment, non-personalization and frequency limits are unchanged.
+  This supersedes the original PG choice; production publication remains separate.
+
 
 - 2026-09-24: Owner requested planning and a draft specification only, with
   implementation explicitly deferred until owner approval.
