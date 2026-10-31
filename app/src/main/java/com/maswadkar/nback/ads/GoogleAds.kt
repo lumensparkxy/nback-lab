@@ -58,7 +58,7 @@ class AdsRuntime(
         if (!canRequest() || initialized || initializing) return
         configure(RequestConfiguration.Builder()
             .setAgeRestrictedTreatment(AgeRestrictedTreatment.CHILD)
-            .setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_PG).build())
+            .setMaxAdContentRating(RequestConfiguration.MAX_AD_CONTENT_RATING_G).build())
         initializing = true
         initializeAds(context.applicationContext) {
             initialized = true; initializing = false; revision++

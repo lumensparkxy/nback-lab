@@ -61,7 +61,7 @@ class AdsPrivacyTest {
             consent.allowed = true; runtime.initialize(compose.activity)
             assertEquals(1, initialized)
             assertEquals(AgeRestrictedTreatment.CHILD, config!!.ageRestrictedTreatment)
-            assertEquals(RequestConfiguration.MAX_AD_CONTENT_RATING_PG, config.maxAdContentRating)
+            assertEquals(RequestConfiguration.MAX_AD_CONTENT_RATING_G, config.maxAdContentRating)
         }
     }
     @CriticalCi @Test fun lateLoadsPrivacyChangesAndDeferredFormsNeverInterruptPlay() {
